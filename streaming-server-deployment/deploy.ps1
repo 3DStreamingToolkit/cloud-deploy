@@ -1,5 +1,10 @@
+# Service path in the VM.
 $servicePath = "c:\3Dtoolkit\binaries\MultithreadedServer\x64"
 $webrtcConfigPath = ($servicePath + "\webrtcConfig.json")
+$serviceRegisterPath = ($servicePath + "\serviceRegister.ps1")
+$serviceStartPath = ($servicePath + "\serviceStart.ps1")
+
+# Updates WebRTC config file.
 
 $turnUri = "TURN_URI"
 $turnUsername = "TURN_USERNAME"
@@ -21,3 +26,9 @@ $configuration = "{
 }"
 
 Out-File -FilePath $webrtcConfigPath -InputObject $configuration -Encoding Ascii
+
+# Registers service.
+Invoke-Expression $serviceRegisterPath
+
+# Starts service.
+Invoke-Expression $serviceStartPath
