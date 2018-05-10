@@ -6,7 +6,7 @@ module.exports = {
     'topic': process.env.AZURE_SEVICEBUS_TOPIC || '3dtoolkit-infrastructure-topic'
   },
   'cosmos': {
-    'host': process.env.HOST,
+    'host': process.env.COSMOS_HOST,
     'masterKey': process.env.COSMOS_MASTER_KEY
   }
 }
