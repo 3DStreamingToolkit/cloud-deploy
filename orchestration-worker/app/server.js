@@ -17,6 +17,16 @@ serviceBusService.receiveSubscriptionMessage(config.serviceBus.topic, 'HighMessa
   if (!error) {
     // Message received and locked
     console.log(lockedMessage)
+
+    // create pool
+    if (lockedMessage.body === 'create') {
+      createPool(null, null, null)
+    }
+
+    if (lockedMessage.body === 'delete') {
+      // delete pool
+    }
+
     serviceBusService.deleteMessage(lockedMessage, function (deleteError) {
       if (!deleteError) {
         // Message deleted
@@ -25,3 +35,11 @@ serviceBusService.receiveSubscriptionMessage(config.serviceBus.topic, 'HighMessa
     })
   }
 })
+
+var createPool = function (vmCount, turnSeverUsername, turnServerPassword) {
+  // createTurnServerAndWait(resourceGroup)
+  // createScript(turnServerIP)
+  // createVMsandForget(vmCount, resourceGroup, scriptLocation)
+  // updateOrchestationDB(connectionString)
+  // clearQueueMessage()
+}
