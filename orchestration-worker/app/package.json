@@ -1,0 +1,36 @@
+{
+  "name": "3dtoolkit-cloud-scaling",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CatalystCode/3dtoolkit-cloud-scaling.git"
+  },
+  "keywords": [
+    "node",
+    "azure"
+  ],
+  "author": "Gavin Bauman",
+  "license": "MIT ",
+  "bugs": {
+    "url": "https://github.com/CatalystCode/3dtoolkit-cloud-scaling/issues"
+  },
+  "homepage": "https://github.com/CatalystCode/3dtoolkit-cloud-scaling#readme",
+  "dependencies": {
+    "azure": "^2.2.1-preview",
+    "documentdb": "^1.14.4",
+    "dotenv": "^5.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^4.19.1",
+    "eslint-config-standard": "^11.0.0",
+    "eslint-plugin-import": "^2.11.0",
+    "eslint-plugin-node": "^6.0.1",
+    "eslint-plugin-promise": "^3.7.0",
+    "eslint-plugin-standard": "^3.1.0"
+  }
+}
