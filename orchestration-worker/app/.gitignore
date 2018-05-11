@@ -8,3 +8,7 @@ node_modules/
 
 # dotenv environment variables file
 .env
+
+# don't commit setup file
+setup.sh
+setup.bat

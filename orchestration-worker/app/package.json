@@ -21,6 +21,7 @@
   },
   "homepage": "https://github.com/CatalystCode/3dtoolkit-cloud-scaling#readme",
   "dependencies": {
+    "3dtoolkit-server-store": "^1.0.1",
     "azure": "^2.2.1-preview",
     "documentdb": "^1.14.4",
     "dotenv": "^5.0.1"
