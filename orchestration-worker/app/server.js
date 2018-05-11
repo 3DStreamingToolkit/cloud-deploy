@@ -1,6 +1,7 @@
-var config = require('./config.js')
-var azure = require('azure')
+const config = require('./config.js')
+const azure = require('azure')
 const ServerStore = require('3dtoolkit-server-store')
+
 
 let serverStore = new ServerStore()
 let serviceBusService = azure.createServiceBusService(config.serviceBus.connectionsString)
@@ -32,8 +33,8 @@ serviceBusService.createTopicIfNotExists(config.serviceBus.topic, function (erro
 console.log('Looking for messages in ' + config.serviceBus.topic)
 setInterval(function () {
   serviceBusService.receiveSubscriptionMessage(config.serviceBus.topic, config.serviceBus.subscription, {
-    isPeekLock: true
-    // timeoutIntervalInS: 300
+    isPeekLock: true,
+    timeoutIntervalInS: 600
   }, function (error, lockedMessage) {
     if (!error) {
       // Message received and locked
@@ -84,8 +85,9 @@ var createTurnServerAndWait = function (resourceGroup) {
 }
 
 var createScript = function (turnServerIP, scriptTemplateLocation) {
-  console.log('Instatiating VM script from template')
-  console.log('Uploading script to blob')
+  console.log('Instatiating VM script from template...')
+  config.turnServer.template
+  console.log('Uploading script to blob...')
   return 'https://blob'
 }
 
@@ -126,8 +128,11 @@ var deletePool = function (turnserverId, vmServersIds) {
 
 var deleteAzureVM = function (vmId) {
   console.log('Deleting Azure VM' + vmId + '...')
+  process.stdout.write('Deleted.')
 }
 
 var terminatePools = function () {
+  console.log('Terminating All 3D Toolkit VMs...')
+  process.stdout.write('Terminated.')
   // TODO: go to the orch db and remove all vms in Azure, clean the db entries as azure deletes them
 }
