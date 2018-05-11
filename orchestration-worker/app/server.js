@@ -1,7 +1,7 @@
 const config = require('./config.js')
 const azure = require('azure')
 const ServerStore = require('3dtoolkit-server-store')
-
+const provision = require('./provision')
 
 let serverStore = new ServerStore()
 let serviceBusService = azure.createServiceBusService(config.serviceBus.connectionsString)
@@ -79,14 +79,15 @@ var createPool = function (vmCount, turnSeverUsername, turnServerPassword) {
   updateOrchestationDB(turnServer.Id, vmIds)
 }
 
-var createTurnServerAndWait = function (resourceGroup) {
+var createTurnServerAndWait = function (resourceGroup) { // TODO: remove resource group given the config is extracted in module
   console.log('createTurnServerAndWait')
+  provision.createVM() // TODO: pass the right arguments
   return { Id: '1', IP: '1.1.1.1' } // return values from the turn server created
 }
 
 var createScript = function (turnServerIP, scriptTemplateLocation) {
   console.log('Instatiating VM script from template...')
-  config.turnServer.template
+  // config.turnServer.template
   console.log('Uploading script to blob...')
   return 'https://blob'
 }
