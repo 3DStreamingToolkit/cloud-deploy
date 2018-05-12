@@ -45,7 +45,7 @@ function _generateRandomId (prefix, exsitIds) {
   return newNumber
 }
 
-var createVM = function () {
+async function createVM () {
   msRestAzure.loginWithServicePrincipalSecret(config.subscription.cliendId, config.subscription.secret, config.subscription.tenantId, function (err, credentials, subscriptions) {
     if (err) return console.log(err)
 
@@ -235,6 +235,6 @@ var createVM = function () {
   })
 }
 
-module.export = {
+module.exports = {
   createVM
 }

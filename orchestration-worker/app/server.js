@@ -72,16 +72,16 @@ setInterval(function () {
   process.stdout.write('.')
 }, 1000)
 
-var createPool = function (vmCount, turnSeverUsername, turnServerPassword) {
-  var turnServer = createTurnServerAndWait(config.resourceGroup) // TODO: then or async
-  var scriptLocation = createScript(turnServer.IP, config.template.url)
-  var vmIds = createVMsandForget(vmCount, config.resourceGroup, scriptLocation)
-  updateOrchestationDB(turnServer.Id, vmIds)
+var createPool = async function (vmCount, turnSeverUsername, turnServerPassword) {
+  var turnServer = await createTurnServerAndWait(config.resourceGroup) // TODO: then or async
+  var scriptLocation = await createScript(turnServer.IP, config.template.url)
+  var vmIds = await createVMsandForget(vmCount, config.resourceGroup, scriptLocation)
+  await updateOrchestationDB(turnServer.Id, vmIds)
 }
 
 var createTurnServerAndWait = function (resourceGroup) { // TODO: remove resource group given the config is extracted in module
   console.log('createTurnServerAndWait')
-  provision.createVM() // TODO: pass the right arguments
+  provision.createVM()  // TODO: pass the right arguments
   return { Id: '1', IP: '1.1.1.1' } // return values from the turn server created
 }
 
