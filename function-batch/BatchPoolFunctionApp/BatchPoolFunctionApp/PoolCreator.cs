@@ -7,6 +7,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Newtonsoft.Json;
 using System;
+using System.Threading.Tasks;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Microsoft.Azure.Batch;
+using Microsoft.Azure.Batch.Auth;
+using Microsoft.Azure.Batch.Common;
+using System.Reflection;
 
 namespace BatchPoolFunctionApp
 {
@@ -41,19 +47,20 @@ namespace BatchPoolFunctionApp
             log.Info("C# HTTP trigger function processed a request.");
 
             // batch tasks
-            CreateBatchPool(req, log);
+            InitBatchPool(req, log).Wait();
 
             // placeholder tasks
+            return new OkObjectResult("success");
 
-            string name = req.Query["name"];
+            //string name = req.Query["name"];
 
-            string requestBody = new StreamReader(req.Body).ReadToEnd();
-            dynamic data = JsonConvert.DeserializeObject(requestBody);
-            name = name ?? data?.name;
+            //string requestBody = new StreamReader(req.Body).ReadToEnd();
+            //dynamic data = JsonConvert.DeserializeObject(requestBody);
+            //name = name ?? data?.name;
 
-            return name != null
-                ? (ActionResult)new OkObjectResult($"Hello, {name}")
-                : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+            //return name != null
+            //    ? (ActionResult)new OkObjectResult($"Hello, {name}")
+            //    : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
         }
 
         public static string GetEnvironmentVariable(string name)
@@ -62,10 +69,120 @@ namespace BatchPoolFunctionApp
                 System.Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Process);
         }
 
-        private static void CreateBatchPool(HttpRequest req, TraceWriter log)
+        private static async Task InitBatchPool(HttpRequest req, TraceWriter log)
         {
-            log.Info($"CreateBatchPool triggered, {JobId}");
+            if (String.IsNullOrEmpty(BatchAccountName) || String.IsNullOrEmpty(BatchAccountKey) || String.IsNullOrEmpty(BatchAccountUrl) ||
+                String.IsNullOrEmpty(StorageAccountName) || String.IsNullOrEmpty(StorageAccountKey))
+            {
+                throw new InvalidOperationException("One ore more account credential strings have not been populated. Please ensure that your Batch and Storage account credentials have been specified.");
+            }
+
+            try
+            {
+                await CreateBatchPool(req, log);
+            }
+            catch (ReflectionTypeLoadException typeLoadException)
+            {
+                var loaderExceptions = typeLoadException.LoaderExceptions;
+
+                log.Info("Loader Exceptions occurred...");
+                foreach (var le in loaderExceptions)
+                    log.Info(le.Message);
+            }
+            catch (AggregateException ae)
+            {
+                log.Info("One or more exceptions occurred.");
+                PrintAggregateException(ae, log);
+            }
+            finally
+            {
+                log.Info("Init complete.");
+            }
         }
+
+        public static void PrintAggregateException(AggregateException aggregateException, TraceWriter log)
+        {
+            // Flatten the aggregate and iterate over its inner exceptions, printing each
+            foreach (Exception exception in aggregateException.Flatten().InnerExceptions)
+            {
+                log.Info(exception.ToString());
+            }
+        }
+
+        private static async Task CreateBatchPool(HttpRequest req, TraceWriter log)
+        {
+            log.Info($"CreateBatchPool triggered, {PoolId}");
+
+            // get auth token
+            //Func<Task<string>> tokenProvider = () => GetAuthenticationTokenAsync();
+            Func<Task<string>> tokenProvider = () => null;
+
+            //using (var batchClient = BatchClient.Open(new BatchTokenCredentials(BatchAccountUrl, tokenProvider)))
+            BatchSharedKeyCredentials cred = new BatchSharedKeyCredentials(BatchAccountUrl, BatchAccountName, BatchAccountKey);
+
+            using (BatchClient batchClient = BatchClient.Open(cred))
+            {
+                await CreatePoolIfNotExistAsync(batchClient, PoolId, log);
+            }
+        }
+
+        private static async Task CreatePoolIfNotExistAsync(BatchClient batchClient, string poolId, TraceWriter log)
+        {
+            CloudPool pool = null;
+            try
+            {
+                log.Info($"Creating pool [{0}]... {poolId}");
+
+                //pool = batchClient.PoolOperations.CreatePool(
+                //    poolId: poolId,
+                //    targetDedicatedComputeNodes: 1,
+                //    virtualMachineSize: "Standard_NV6",
+                //    virtualMachineConfiguration: new VirtualMachineConfiguration(
+                //        new ImageReference(virtualMachineImageId: VirtualMachineImageId),
+                //        nodeAgentSkuId: "batch.node.windows amd64")
+                //    );
+
+                pool = batchClient.PoolOperations.CreatePool(
+                    poolId: poolId,
+                    targetDedicatedComputeNodes: 1,
+                    virtualMachineSize: "Standard_NV6",
+                    virtualMachineConfiguration: new VirtualMachineConfiguration(
+                        new ImageReference(
+                            offer: "WindowsServer",
+                            publisher: "MicrosoftWindowsServer",
+                            sku: "2016-DataCenter",
+                            version: "latest"),
+                        nodeAgentSkuId: "batch.node.windows amd64")
+                    );
+
+                await pool.CommitAsync();
+            }
+            catch (BatchException be)
+            {
+                // Swallow the specific error code PoolExists since that is expected if the pool already exists
+                if (be.RequestInformation?.BatchError != null && be.RequestInformation.BatchError.Code == BatchErrorCodeStrings.PoolExists)
+                {
+                    log.Info("The pool {0} already existed when we tried to create it", poolId);
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Info($"Unexpected error occurred: {ex.Message}");
+            }
+        }
+
+        //public static async Task<string> GetAuthenticationTokenAsync()
+        //{
+        //    var authContext = new AuthenticationContext(AuthorityUri);
+
+        //    // Acquire the authentication token from Azure AD.
+        //    var authResult = await authContext.AcquireTokenAsync(BatchResourceUri,
+        //                                                        ClientId,
+        //                                                        new Uri(RedirectUri),
+        //                                                        new PlatformParameters());
+
+        //    return authResult.AccessToken;
+        //}
 
     }
 }
