@@ -259,3 +259,5 @@ paket-files/
 # Python Tools for Visual Studio (PTVS)
 __pycache__/
 *.pyc
+function-batch/BatchPoolJsFunctionV1App/local.settings.json
+function-batch/BatchPoolJsFunctionV1App/Properties/PublishProfiles/BatchPoolJsFunctionV1AppDev - Web Deploy.pubxml
