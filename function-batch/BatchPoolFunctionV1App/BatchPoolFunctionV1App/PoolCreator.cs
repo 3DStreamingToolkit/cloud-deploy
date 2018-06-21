@@ -148,28 +148,28 @@ namespace BatchPoolFunctionV1App
             {
                 log.Info($"Creating pool [{0}]... {poolId}");
 
-                //pool = batchClient.PoolOperations.CreatePool(
-                //    poolId: poolId,
-                //    targetDedicatedComputeNodes: 1,
-                //    virtualMachineSize: "Standard_NV6",
-                //    virtualMachineConfiguration: new VirtualMachineConfiguration(
-                //        new ImageReference(
-                //            offer: "WindowsServer",
-                //            publisher: "MicrosoftWindowsServer",
-                //            sku: "2016-DataCenter",
-                //            version: "latest"),
-                //        nodeAgentSkuId: "batch.node.windows amd64")
-                //    );
-
-
                 pool = batchClient.PoolOperations.CreatePool(
                     poolId: poolId,
                     targetDedicatedComputeNodes: 1,
                     virtualMachineSize: "Standard_NV6",
                     virtualMachineConfiguration: new VirtualMachineConfiguration(
-                        new ImageReference(virtualMachineImageId: VirtualMachineImageId),
+                        new ImageReference(
+                            offer: "WindowsServer",
+                            publisher: "MicrosoftWindowsServer",
+                            sku: "2016-DataCenter",
+                            version: "latest"),
                         nodeAgentSkuId: "batch.node.windows amd64")
                     );
+
+
+                //pool = batchClient.PoolOperations.CreatePool(
+                //    poolId: poolId,
+                //    targetDedicatedComputeNodes: 1,
+                //    virtualMachineSize: "Standard_NV6",
+                //    virtualMachineConfiguration: new VirtualMachineConfiguration(
+                //        new ImageReference(virtualMachineImageId: VirtualMachineImageId),
+                //        nodeAgentSkuId: "batch.node.windows amd64")
+                //    );
 
                 await pool.CommitAsync();
             }
@@ -183,7 +183,7 @@ namespace BatchPoolFunctionV1App
             }
             catch (Exception ex)
             {
-                log.Info($"Unexpected error occurred: {ex.Message}");
+                log.Error($"Unexpected error occurred: {ex.Message}");
             }
         }
     }
