@@ -22,7 +22,7 @@ namespace BatchPoolWebApp.Controllers
             return View();
         }
 
-            public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index()
         {
             var staticPoolItems = await _batchService.GetPoolDataAsync();
 

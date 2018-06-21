@@ -9,6 +9,7 @@
     |
     <strong>Create Pool</strong>
 </div>
+<div id="resultDiv">?</div>
 
 <button onclick="requestNewPool()">Request New Pool</button>
 @foreach (var property in ViewData.ModelMetadata.Properties)
@@ -29,7 +30,7 @@
         var PoolCount = $("#PoolCount").val();
         var PoolIdPrefix = $("#PoolIdPrefix").val();
         var JobId = $("#JobId").val();
-        var NodeCount = $("#NodeCount").val(); 
+        var NodeCount = $("#NodeCount").val();
 
         var fields = "Field Values";
         fields += "\nVnetName = " + VnetName;
@@ -37,7 +38,39 @@
         fields += "\nPoolIdPrefix=" + PoolIdPrefix;
         fields += "\nJobId=" + JobId;
         fields += "\nNodeCount=" + NodeCount;
-        //alert(fields);
+        alert(fields);
+
+
+        var baseUri = "";
+        var fullUri = "";
+        var params = "";
+
+        baseUri = "/api/BatchApi";
+        fullUri = baseUri + params;
+
+        console.log("fullUri=" + fullUri);
+
+        var jqxhr = $.getJSON(baseUri + params, function (json) {
+            console.log("success");
+            console.log("json=[" + json + "]");
+            $("#resultDiv").text(json);
+        })
+            .done(function () {
+                console.log("second success");
+            })
+            .fail(function () {
+                console.log("error");
+            })
+            .always(function () {
+                console.log("complete");
+            });
+
+        // Perform other work here ...
+
+        // Set another completion function for the request above
+        jqxhr.complete(function () {
+            console.log("final complete");
+        });
 
     }
 </script>
