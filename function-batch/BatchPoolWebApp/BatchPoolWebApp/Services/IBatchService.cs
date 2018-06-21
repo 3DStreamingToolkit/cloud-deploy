@@ -11,5 +11,9 @@ namespace BatchPoolWebApp.Services
     {
         Task<PoolModel[]> GetPoolDataAsync();
         IList<CloudPool> GetPoolsInBatch();
+        Task<bool> CreateLinuxPool(string poolId, int dedicatedNodes);
+        Task<bool> CreateWindowsPool(string poolId, int dedicatedNodes);
+        Task<List<CloudTask>> AddTasksAsync(BatchClient batchClient, string turnServersPool, string jobId, string signalingServerURL, int signalingServerPort, bool isWindows);
+        Task<bool> MonitorTasks(BatchClient batchClient, string jobId, TimeSpan timeout);
     }
 }
