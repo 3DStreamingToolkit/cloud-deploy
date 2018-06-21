@@ -1,0 +1,44 @@
+﻿@model BatchPoolWebApp.Models.PoolCreateModel
+@{
+    ViewData["Title"] = "Create Pool";
+}
+
+<h2>Create Pool</h2>
+<div>
+    <a href="/Pool/Index">View Pools</a>
+    |
+    <strong>Create Pool</strong>
+</div>
+
+<button onclick="requestNewPool()">Request New Pool</button>
+@foreach (var property in ViewData.ModelMetadata.Properties)
+{
+
+    <div class="form-group">
+
+        @property.DisplayName
+
+        @Html.Editor(property.PropertyName, new { htmlAttributes = new { @class = "form-control col-md-2" } })
+
+    </div>
+}
+
+<script>
+    function requestNewPool() {
+        var VnetName = $("#VnetName").val();
+        var PoolCount = $("#PoolCount").val();
+        var PoolIdPrefix = $("#PoolIdPrefix").val();
+        var JobId = $("#JobId").val();
+        var NodeCount = $("#NodeCount").val(); 
+
+        var fields = "Field Values";
+        fields += "\nVnetName = " + VnetName;
+        fields += "\nPoolCount=" + PoolCount;
+        fields += "\nPoolIdPrefix=" + PoolIdPrefix;
+        fields += "\nJobId=" + JobId;
+        fields += "\nNodeCount=" + NodeCount;
+        //alert(fields);
+
+    }
+</script>
+
