@@ -261,3 +261,4 @@ __pycache__/
 *.pyc
 function-batch/BatchPoolJsFunctionV1App/local.settings.json
 function-batch/BatchPoolJsFunctionV1App/Properties/PublishProfiles/BatchPoolJsFunctionV1AppDev - Web Deploy.pubxml
+function-batch/BatchPoolWebApp/BatchPoolWebApp/appsettings.Development.json

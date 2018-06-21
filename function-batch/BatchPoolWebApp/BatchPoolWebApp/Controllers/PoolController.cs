@@ -19,13 +19,21 @@ namespace BatchPoolWebApp.Controllers
 
         public async Task<IActionResult> Index()
         {
-            var poolItems = await _batchService.GetPoolDataAsync();
+            var staticPoolItems = await _batchService.GetPoolDataAsync();
+
+            var poolsInBatch = _batchService.GetPoolsInBatch();
+            IList<PoolModel> poolItems = new List<PoolModel>();
+
+            foreach (var pool in poolsInBatch)
+            {
+                poolItems.Add(new PoolModel { PoolId = pool.Id, AllocationState = pool.AllocationState});
+            }
 
             var poolViewModel = new PoolViewModel()
             {
                 PoolItems = poolItems
             };
-
+            
             return View(poolViewModel);
         }
     }

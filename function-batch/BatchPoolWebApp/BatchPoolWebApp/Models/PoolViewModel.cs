@@ -7,6 +7,6 @@ namespace BatchPoolWebApp.Models
 {
     public class PoolViewModel
     {
-        public PoolModel[] PoolItems { get; set; }
+        public IList<PoolModel> PoolItems { get; set; }
     }
 }
