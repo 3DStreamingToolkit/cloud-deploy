@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using BatchPoolWebApp.Data;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using BatchPoolWebApp.Services;
 
 namespace BatchPoolWebApp
 {
@@ -41,6 +42,8 @@ namespace BatchPoolWebApp
                 .AddEntityFrameworkStores<ApplicationDbContext>();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+
+            services.AddSingleton<IBatchService, BatchService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

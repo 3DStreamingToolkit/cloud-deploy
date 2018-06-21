@@ -1,9 +1,30 @@
-﻿
+﻿@model PoolViewModel
+
 @{
     ViewData["Title"] = "Pool Data";
 }
 
-<h2>Pool Data</h2>
+<div class="panel panel-default todo-panel">
+    <div class="panel-heading">@ViewData["Title"]</div>
 
-Pool Info goes here.
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <td>Item</td>
+                <td>Due</td>
+            </tr>
+        </thead>
 
+        @foreach (var poolItem in Model.PoolItems)
+        {
+            <tr>
+                <td>@poolItem.PoolId</td>
+                <td>@poolItem.AllocationState</td>
+            </tr>
+        }
+    </table>
+
+    <div class="panel-footer add-item-form">
+        <!-- TODO: Add item form -->
+    </div>
+</div>
