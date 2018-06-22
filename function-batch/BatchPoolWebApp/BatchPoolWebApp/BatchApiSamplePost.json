@@ -1,0 +1,10 @@
+﻿{
+  "signalingServer": "SIGNALING_URI", // Required
+  "signalingServerPort": 80, // Required
+  "renderingPoolId": "RENDERING_POOL_ID",
+  "renderingJobId": "RENDERING_JOB_ID",
+  "dedicatedRenderingNodes": 1,
+  "maxUsersPerRenderingNode": 1,
+  "turnPoolId": "TURN_POOL_ID",
+  "dedicatedTurnNodes": 1
+}

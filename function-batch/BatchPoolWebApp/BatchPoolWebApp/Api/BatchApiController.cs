@@ -43,46 +43,35 @@ namespace BatchPoolWebApp.Api
         {
             var signalingServer = jsonBody["signalingServer"]?.ToObject<string>();
             var signalingServerPort = jsonBody["signalingServerPort"]?.ToObject<int>();
-            string linuxPoolId = jsonBody["linuxPoolId"]?.ToObject<string>() ?? "LinuxPool";
-            string windowsPoolId = jsonBody["windowsPoolId"]?.ToObject<string>() ?? "WindowsPool";
-            int numberOfDedicatedLinuxNodes = jsonBody["numberOfDedicatedLinuxNodes"]?.ToObject<int>() ?? 1;
-            int numberOfDedicatedWindowsNodes = jsonBody["numberOfDedicatedWindowsNodes"]?.ToObject<int>() ?? 1;
-            int serverCapacity = jsonBody["serverCapacity"]?.ToObject<int>() ?? -1;
-            string windowsJobId = jsonBody["windowsJobId"]?.ToObject<string>() ?? "3DSTKWindowsJob";
-            string linuxJobId = jsonBody["linuxJobId"]?.ToObject<string>() ?? "3DSTKTURNJob";
+            string turnPoolId = jsonBody["turnPoolId"]?.ToObject<string>() ?? "DefaultTurnPool";
+            string renderingPoolId = jsonBody["renderingPoolId"]?.ToObject<string>() ?? "DefaultRenderingPool";
+            int dedicatedTurnNodes = jsonBody["dedicatedTurnNodes"]?.ToObject<int>() ?? 1;
+            int dedicatedRenderingNodes = jsonBody["dedicatedRenderingNodes"]?.ToObject<int>() ?? 1;
+            int maxUsersPerRenderingNode = jsonBody["maxUsersPerRenderingNode"]?.ToObject<int>() ?? -1;
+            string renderingJobId = jsonBody["renderingJobId"]?.ToObject<string>() ?? "3DSTKRenderingJob";
 
             if (string.IsNullOrEmpty(signalingServer) || !signalingServerPort.HasValue)
                 return BadRequest("Signaling is required");
 
-            var linuxPool = _batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == linuxPoolId);
+            var linuxPool = _batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == turnPoolId);
             if (linuxPool == null)
             {
-                await _batchService.CreateLinuxPool(linuxPoolId, numberOfDedicatedLinuxNodes);
-                await _batchService.CreateJobAsync(linuxJobId, linuxPoolId);
-
-                var taskResults = await _batchService.MonitorTasks(linuxJobId, new TimeSpan(0, 20, 0));
-
-                if(!taskResults)
-                {
-                    await _batchService.DeleteJobAsync(linuxJobId);
-                    await _batchService.DeletePoolAsync(linuxPoolId);
-                    return BadRequest("Linux tasks failed!");
-                }
+                await _batchService.CreateLinuxPool(turnPoolId, dedicatedTurnNodes);
             }
 
-            var windowsPool = _batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == windowsPoolId);
-            if (windowsPool == null)
+            var renderingPool = _batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == renderingPoolId);
+            if (renderingPool == null)
             {
-                await _batchService.CreateWindowsPool(windowsPoolId, numberOfDedicatedWindowsNodes);
+                await _batchService.CreateWindowsPool(renderingPoolId, dedicatedRenderingNodes);
             }
 
-            await _batchService.CreateJobAsync(windowsJobId, windowsPoolId);
-            for(var i =0; i< numberOfDedicatedWindowsNodes;i++)
+            await _batchService.CreateJobAsync(renderingJobId, renderingPoolId);
+            for(var i =0; i< dedicatedRenderingNodes; i++)
             {
-                await _batchService.AddWindowsTasksAsync(linuxPoolId, windowsJobId, signalingServer, signalingServerPort.Value, serverCapacity);
+                await _batchService.AddWindowsTasksAsync(turnPoolId, renderingJobId, signalingServer, signalingServerPort.Value, maxUsersPerRenderingNode);
             }
 
-            await _batchService.MonitorTasks(windowsJobId, new TimeSpan(0, 20, 0));
+            await _batchService.MonitorTasks(renderingJobId, new TimeSpan(0, 20, 0));
 
             return Ok();
         }
