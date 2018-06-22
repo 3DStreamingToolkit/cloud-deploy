@@ -121,16 +121,11 @@ namespace BatchPoolWebApp.Services
             return true;
         }
 
-        public async Task<bool> CreateWindowsPool(string turnServersPool, string poolId, int dedicatedNodes, string signalingServerURL, int signalingServerPort)
+        public async Task<bool> CreateWindowsPool(string poolId, int dedicatedNodes)
         {
             try
             {
                 Console.WriteLine("Creating pool [{0}]...", poolId);
-
-                var turnPool = batchClient.PoolOperations.GetPool(turnServersPool);
-                var turnNodes = turnPool.ListComputeNodes();
-                var topNode = turnNodes.FirstOrDefault();
-                var rdp = topNode.GetRemoteLoginSettings();
 
                 // Create the unbound pool. Until we call CloudPool.Commit() or CommitAsync(), no pool is actually created in the
                 // Batch service. This CloudPool instance is therefore considered "unbound," and we can modify its properties.
@@ -147,24 +142,18 @@ namespace BatchPoolWebApp.Services
                             version: "latest"),
                         nodeAgentSkuId: "batch.node.windows amd64")
                     );
-
+                
                 // Create and assign the StartTask that will be executed when compute nodes join the pool.
                 // In this case, we copy the StartTask's resource files (that will be automatically downloaded
                 // to the node by the StartTask) into the shared directory that all tasks will have access to.
                 pool.StartTask = new StartTask
                 {
-                    // Since a successful execution of robocopy can return a non-zero exit code (e.g. 1 when one or
-                    // more files were successfully copied) we need to manually exit with a 0 for Batch to recognize
-                    // StartTask execution success.
-                    CommandLine = String.Format("cmd /c powershell -command \"start-process powershell -verb runAs -ArgumentList '-NoExit -ExecutionPolicy Unrestricted -file %AZ_BATCH_APP_PACKAGE_server-deploy-script#1.0%\\server_deploy.ps1 {1} {2} {3} {4} {5} {6} {7} {0} %AZ_BATCH_APP_PACKAGE_sample-server#1.0% '\"",
-                        serverPath,
-                        string.Format("turn:{0}:3478", rdp.IPAddress),
-                        "username",
-                        "password",
-                        signalingServerURL,
-                        signalingServerPort,
-                        5000,
-                        -1),
+                    // Install all packages and run Unit tests to ensure the node is ready for streaming
+                    CommandLine = String.Format("cmd /c robocopy %AZ_BATCH_APP_PACKAGE_sample-server#1.0% {0} /E && " +
+                    "cmd /c %AZ_BATCH_APP_PACKAGE_vc-redist#2015%\\vc_redist.x64.exe /install /passive /norestart && " +
+                    "cmd /c %AZ_BATCH_APP_PACKAGE_NVIDIA#391.58%\\setup.exe /s && " +
+                    "cmd /c %AZ_BATCH_APP_PACKAGE_native-server-tests#1%\\NativeServerTests\\NativeServer.Tests.exe --gtest_also_run_disabled_tests --gtest_filter=\"*Driver*:*Hardware*\"",
+                    serverPath),
                     UserIdentity = new UserIdentity(new AutoUserSpecification(AutoUserScope.Task, ElevationLevel.Admin)),
                     WaitForSuccess = true
                 };
@@ -208,17 +197,33 @@ namespace BatchPoolWebApp.Services
             return true;
         }
 
-        public async Task<List<CloudTask>> AddLinuxTasksAsync(string jobId)
+        public async Task<bool> AddWindowsTasksAsync(string turnServersPool, string jobId, string signalingServerURL, int signalingServerPort, int serverCapacity)
         {
+            var turnPool = batchClient.PoolOperations.GetPool(turnServersPool);
+            if (turnPool == null)
+            {
+                return false;
+            }
+
+            var turnNodes = turnPool.ListComputeNodes();
+            var topNode = turnNodes.FirstOrDefault();
+            var rdp = topNode.GetRemoteLoginSettings();
+
             // Create a collection to hold the tasks that we'll be adding to the job
             List<CloudTask> tasks = new List<CloudTask>();
-            var taskCommandLine = string.Empty;
 
-            // Run docker install and deployment of TURN server
-            var taskId = "DeployDocker";
-            taskCommandLine = "/bin/bash -c \"sudo apt-get update && sudo apt-get -y install docker.io && sudo docker run -d -p 3478:3478 -p 3478:3478/udp --restart=always zolochevska/turn-server username password realm\"";
+            var taskId = "StartRendering";
+            var startRenderingCommand = String.Format("cmd /c powershell -command \"start-process powershell -verb runAs -ArgumentList '-NoExit -ExecutionPolicy Unrestricted -file %AZ_BATCH_APP_PACKAGE_server-deploy-script#1.0%\\server_deploy.ps1 {1} {2} {3} {4} {5} {6} {7} {0} '\"",
+                serverPath,
+                    string.Format("turn:{0}:3478", rdp.IPAddress),
+                    "username",
+                    "password",
+                    signalingServerURL,
+                    signalingServerPort,
+                    5000,
+                    serverCapacity);
 
-            CloudTask task = new CloudTask(taskId, taskCommandLine)
+            CloudTask task = new CloudTask(taskId, startRenderingCommand)
             {
                 UserIdentity = new UserIdentity(new AutoUserSpecification(AutoUserScope.Task, ElevationLevel.Admin))
             };
@@ -230,7 +235,7 @@ namespace BatchPoolWebApp.Services
             // helps to ensure efficient underlying API calls to the Batch service.
             await batchClient.JobOperations.AddTaskAsync(jobId, tasks);
 
-            return tasks;
+            return true;
         }
 
         /// <summary>

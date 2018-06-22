@@ -47,6 +47,7 @@ namespace BatchPoolWebApp.Api
             string windowsPoolId = jsonBody["windowsPoolId"]?.ToObject<string>() ?? "WindowsPool";
             int numberOfDedicatedLinuxNodes = jsonBody["numberOfDedicatedLinuxNodes"]?.ToObject<int>() ?? 1;
             int numberOfDedicatedWindowsNodes = jsonBody["numberOfDedicatedWindowsNodes"]?.ToObject<int>() ?? 1;
+            int serverCapacity = jsonBody["serverCapacity"]?.ToObject<int>() ?? -1;
             string windowsJobId = jsonBody["windowsJobId"]?.ToObject<string>() ?? "3DSTKWindowsJob";
             string linuxJobId = jsonBody["linuxJobId"]?.ToObject<string>() ?? "3DSTKTURNJob";
 
@@ -72,13 +73,16 @@ namespace BatchPoolWebApp.Api
             var windowsPool = _batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == windowsPoolId);
             if (windowsPool == null)
             {
-                await _batchService.CreateWindowsPool(linuxPoolId, windowsPoolId, numberOfDedicatedWindowsNodes, signalingServer, signalingServerPort.Value);
+                await _batchService.CreateWindowsPool(windowsPoolId, numberOfDedicatedWindowsNodes);
             }
 
-            // await _batchService.CreateJobAsync(windowsJobId, windowsPoolId);
-           // await _batchService.AddWindowsTasksAsync(linuxPoolId, windowsJobId, signalingServer, signalingServerPort.Value);
+            await _batchService.CreateJobAsync(windowsJobId, windowsPoolId);
+            for(var i =0; i< numberOfDedicatedWindowsNodes;i++)
+            {
+                await _batchService.AddWindowsTasksAsync(linuxPoolId, windowsJobId, signalingServer, signalingServerPort.Value, serverCapacity);
+            }
 
-            // await _batchService.MonitorTasks(windowsJobId, new TimeSpan(0, 20, 0));
+            await _batchService.MonitorTasks(windowsJobId, new TimeSpan(0, 20, 0));
 
             return Ok();
         }
