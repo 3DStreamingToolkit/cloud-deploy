@@ -65,14 +65,14 @@ namespace Cloud3DSTKDeploymentAPI.Services
         Task CreateJobAsync(string jobId, string poolId);
 
         /// <summary>
-        /// Deleted a specific job
+        /// Delete a specific job
         /// </summary>
         /// <param name="jobId">The job id to be deleted</param>
         /// <returns>Return a task that can be awaited</returns>
         Task DeleteJobAsync(string jobId);
 
         /// <summary>
-        /// Deleted a specific pool
+        /// Delete a specific pool
         /// </summary>
         /// <param name="poolId">The pool id to be deleted</param>
         /// <returns>Return a task that can be awaited</returns>

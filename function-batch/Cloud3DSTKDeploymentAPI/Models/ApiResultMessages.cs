@@ -29,6 +29,16 @@ namespace Cloud3DSTKDeploymentAPI.Models
         public static string ErrorNoSignalingFound { get; } = "Signaling is required";
 
         /// <summary>
+        /// Gets the string error when the pool id was not found
+        /// </summary>
+        public static string ErrorPoolIdNotFound { get; } = "The specified poolId does not exist in the batch client";
+
+        /// <summary>
+        /// Gets the string error when no signaling uri or port is found
+        /// </summary>
+        public static string ErrorPoolIdRequired { get; } = "poolId is required for delete";
+
+        /// <summary>
         /// Gets the string error when no dedicated nodes are found
         /// </summary>
         public static string ErrorOneDedicatedNodeRequired { get; } = "Pools must have at least one dedicated node";

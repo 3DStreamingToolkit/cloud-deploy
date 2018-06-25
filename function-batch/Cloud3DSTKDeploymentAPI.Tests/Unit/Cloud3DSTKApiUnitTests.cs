@@ -7,6 +7,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
     using Cloud3DSTKDeploymentAPI.Controllers;
     using Cloud3DSTKDeploymentAPI.Models;
     using Cloud3DSTKDeploymentAPI.Services;
+    using Cloud3DSTKDeploymentAPI.Tests.Helpers;
     using Cloud3DSTKDeploymentAPI.Tests.Models;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Configuration;
@@ -20,22 +21,14 @@ namespace Cloud3DSTKDeploymentAPI.Tests
     public class Cloud3DSTKApiUnitTests
     {
         /// <summary>
-        /// Interface to the appsettings configuration file
-        /// </summary>
-        private IConfiguration configuration;
-
-        /// <summary>
         /// Unit test for no body post
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
         public async Task CreateApiReturnsInvalidRequestWhenNoBody()
         {  
-            // Read the appsettings json
-            this.SetupConfiguration();
-
-            var batchService = new BatchService(this.configuration);
-            var controller = new Cloud3DSTKApiController(batchService);
+            var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
+            var controller = new Cloud3DSTKController(batchService);
 
             var result = await controller.Post(null);
             
@@ -50,11 +43,8 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         [TestMethod]
         public async Task CreateApiReturnsInvalidRequestWhenNoSignalingUriPresent()
         {
-            // Read the appsettings json
-            this.SetupConfiguration();
-
-            var batchService = new BatchService(this.configuration);
-            var controller = new Cloud3DSTKApiController(batchService);
+            var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
+            var controller = new Cloud3DSTKController(batchService);
 
             // Create a json body with no signaling uri
             var jsonBody = new CreateApiJsonBody
@@ -75,11 +65,8 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         [TestMethod]
         public async Task CreateApiReturnsInvalidRequestWhenNoDedicatedNodes()
         {
-            // Read the appsettings json
-            this.SetupConfiguration();
-
-            var batchService = new BatchService(this.configuration);
-            var controller = new Cloud3DSTKApiController(batchService);
+            var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
+            var controller = new Cloud3DSTKController(batchService);
 
             // Create a json body with no signaling uri
             var jsonBody = new CreateApiJsonBody
@@ -102,11 +89,8 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         [TestMethod]
         public async Task CreateApiReturnsInvalidRequestWhenMaxUsersIs0()
         {
-            // Read the appsettings json
-            this.SetupConfiguration();
-
-            var batchService = new BatchService(this.configuration);
-            var controller = new Cloud3DSTKApiController(batchService);
+            var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
+            var controller = new Cloud3DSTKController(batchService);
 
             // Create a json body with no signaling uri
             var jsonBody = new CreateApiJsonBody
@@ -123,15 +107,42 @@ namespace Cloud3DSTKDeploymentAPI.Tests
             Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
             Assert.IsTrue((result as ObjectResult).Value.ToString().Equals(ApiResultMessages.ErrorOneMaxUserRequired));
         }
-        
+
         /// <summary>
-        /// Private method to setup the configuration file for batch
+        /// Unit test for no body in delete pool api
         /// </summary>
-        private void SetupConfiguration()
+        /// <returns>The result of the test</returns>
+        [TestMethod]
+        public async Task DeletePoolApiReturnsInvalidRequestWhenNoBody()
         {
-            IConfigurationBuilder configurationBuilder = new ConfigurationBuilder();
-            configurationBuilder.AddJsonFile("appsettings.json");
-            this.configuration = configurationBuilder.Build();
+            var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
+            var controller = new Cloud3DSTKController(batchService);
+
+            var result = await controller.DeletePool(null);
+
+            Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+            Assert.IsTrue((result as ObjectResult).Value.ToString().Equals(ApiResultMessages.ErrorBodyIsEmpty));
+        }
+
+        /// <summary>
+        /// Unit test for no body in delete pool api
+        /// </summary>
+        /// <returns>The result of the test</returns>
+        [TestMethod]
+        public async Task DeletePoolApiReturnsInvalidRequestWhenPoolIdIsMissing()
+        {
+            var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
+            var controller = new Cloud3DSTKController(batchService);
+
+            // Create a json body with no pool id
+            var jsonBody = new DeletePoolApiJsonBody
+            {
+            };
+
+            var result = await controller.DeletePool((JObject)JToken.FromObject(jsonBody));
+
+            Assert.IsInstanceOfType(result, typeof(BadRequestObjectResult));
+            Assert.IsTrue((result as ObjectResult).Value.ToString().Equals(ApiResultMessages.ErrorPoolIdRequired));
         }
     }
 }

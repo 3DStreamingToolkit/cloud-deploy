@@ -359,13 +359,20 @@ namespace Cloud3DSTKDeploymentAPI.Services
         }
 
         /// <summary>
-        /// Deleted a specific pool
+        /// Delete a specific pool
         /// </summary>
         /// <param name="poolId">The pool id to be deleted</param>
         /// <returns>Return a task that can be awaited</returns>
         public async Task DeletePoolAsync(string poolId)
         {
-            await this.batchClient.PoolOperations.DeletePoolAsync(poolId);
+            try
+            {
+                await this.batchClient.PoolOperations.DeletePoolAsync(poolId);
+            }
+            catch (BatchException be)
+            {
+                Console.WriteLine(be);
+            }
         }
         
         /// <summary>

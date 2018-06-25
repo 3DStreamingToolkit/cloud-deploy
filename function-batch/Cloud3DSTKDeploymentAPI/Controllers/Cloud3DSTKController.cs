@@ -16,7 +16,7 @@ namespace Cloud3DSTKDeploymentAPI.Controllers
     /// </summary>
     [Produces("application/json")]
     [Route("api/[controller]")]
-    public class Cloud3DSTKApiController : Controller
+    public class Cloud3DSTKController : Controller
     {
         /// <summary>
         /// Interface to the batch service
@@ -27,13 +27,13 @@ namespace Cloud3DSTKDeploymentAPI.Controllers
         /// Initializes a new instance of the <see cref="Cloud3DSTKApiController" /> class
         /// </summary>
         /// <param name="batchService">An instance of the batch service</param>
-        public Cloud3DSTKApiController(IBatchService batchService)
+        public Cloud3DSTKController(IBatchService batchService)
         {
             this.batchService = batchService;
         }
 
         /// <summary>
-        /// The Post method 
+        /// The create api 
         /// </summary>
         /// <param name="jsonBody">The post json body</param>
         /// <returns>The call result as a <see cref="IActionResult" /> class</returns>
@@ -92,6 +92,42 @@ namespace Cloud3DSTKDeploymentAPI.Controllers
                 }
 
                 await this.batchService.MonitorTasks(renderingJobId, new TimeSpan(0, 20, 0));
+            }
+            
+            return this.Ok();
+        }
+
+        /// <summary>
+        /// The delete batch pool api 
+        /// </summary>
+        /// <param name="jsonBody">The post json body</param>
+        /// <returns>The call result as a <see cref="IActionResult" /> class</returns>
+        [HttpPost]
+        [Route("deleteBatchPool")]
+        public async Task<IActionResult> DeletePool(
+            [FromBody] JObject jsonBody)
+        {
+            if (jsonBody == null)
+            {
+                return this.BadRequest(ApiResultMessages.ErrorBodyIsEmpty);
+            }
+
+            var poolId = jsonBody["poolId"]?.ToObject<string>();
+
+            // Pool Id is required
+            if (string.IsNullOrEmpty(poolId))
+            {
+                return this.BadRequest(ApiResultMessages.ErrorPoolIdRequired);
+            }
+
+            var pool = this.batchService.GetPoolsInBatch().FirstOrDefault(p => p.Id == poolId);
+            if (pool == null)
+            {
+                return this.BadRequest(ApiResultMessages.ErrorPoolIdNotFound);
+            }
+            else
+            {
+                await this.batchService.DeletePoolAsync(poolId);
             }
             
             return this.Ok();
