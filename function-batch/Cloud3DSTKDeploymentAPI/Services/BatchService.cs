@@ -7,7 +7,7 @@ using Microsoft.Azure.Batch.Auth;
 using Microsoft.Azure.Batch.Common;
 using Microsoft.Extensions.Configuration;
 
-namespace BatchPoolWebApp.Services
+namespace Cloud3DSTKDeploymentAPI.Services
 {
     public class BatchService : IBatchService
     {
@@ -119,21 +119,21 @@ namespace BatchPoolWebApp.Services
                             version: "latest"),
                         nodeAgentSkuId: "batch.node.windows amd64")
                     );
-                
+
                 // Create and assign the StartTask that will be executed when compute nodes join the pool.
                 // In this case, we copy the StartTask's resource files (that will be automatically downloaded
                 // to the node by the StartTask) into the shared directory that all tasks will have access to.
                 pool.StartTask = new StartTask
                 {
                     // Install all packages and run Unit tests to ensure the node is ready for streaming
-                    CommandLine = String.Format("cmd /c %AZ_BATCH_APP_PACKAGE_vc-redist#2015%\\vc_redist.x64.exe /install /passive /norestart && " +
+                    CommandLine = String.Format("cmd /c robocopy %AZ_BATCH_APP_PACKAGE_sample-server#1.0% {0} /E && " +
+                    "cmd /c %AZ_BATCH_APP_PACKAGE_vc-redist#2015%\\vc_redist.x64.exe /install /passive /norestart && " +
                     "cmd /c %AZ_BATCH_APP_PACKAGE_NVIDIA#391.58%\\setup.exe /s && " +
-                    "  " +
-                    "^& IF %ERRORLEVEL% LEQ 1 shutdown /r /t 1",
+                    "cmd /c %AZ_BATCH_APP_PACKAGE_native-server-tests#1%\\NativeServerTests\\NativeServer.Tests.exe --gtest_also_run_disabled_tests --gtest_filter=\"*Driver*:*Hardware*\"",
                     serverPath),
                     UserIdentity = new UserIdentity(new AutoUserSpecification(AutoUserScope.Task, ElevationLevel.Admin)),
                     WaitForSuccess = true,
-                    MaxTaskRetryCount = 1
+                    MaxTaskRetryCount = 2
                 };
 
                 // Specify the application and version to install on the compute nodes
@@ -191,7 +191,7 @@ namespace BatchPoolWebApp.Services
             List<CloudTask> tasks = new List<CloudTask>();
 
             var taskId = "StartRendering";
-            var startRenderingCommand = String.Format("cmd /c powershell -command \"start-process powershell -verb runAs -ArgumentList '-NoExit -ExecutionPolicy Unrestricted -file %AZ_BATCH_APP_PACKAGE_server-deploy-script#1.0%\\server_deploy.ps1 {1} {2} {3} {4} {5} {6} {7} {0} '\"",
+            var startRenderingCommand = String.Format("cmd /c powershell -command \"start-process powershell -verb runAs -ArgumentList '-ExecutionPolicy Unrestricted -file %AZ_BATCH_APP_PACKAGE_server-deploy-script#1.0%\\server_deploy.ps1 {1} {2} {3} {4} {5} {6} {7} {0} '\"",
                 serverPath,
                     string.Format("turn:{0}:3478", rdp.IPAddress),
                     "username",

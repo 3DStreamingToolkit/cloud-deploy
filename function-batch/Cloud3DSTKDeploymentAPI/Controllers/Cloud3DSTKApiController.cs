@@ -1,8 +1,8 @@
 ﻿
 
-namespace BatchPoolWebApp.Api
+namespace Cloud3DSTKDeploymentAPI.Controllers
 {
-    using BatchPoolWebApp.Services;
+    using Cloud3DSTKDeploymentAPI.Services;
     using Microsoft.AspNetCore.Mvc;
     using Newtonsoft.Json.Linq;
     using System;
@@ -12,32 +12,17 @@ namespace BatchPoolWebApp.Api
 
     [Produces("application/json")]
     [Route("api/[controller]")]
-    public class BatchApiController : Controller
+    public class Cloud3DSTKApiController : Controller
     {
         private readonly IBatchService _batchService;
 
-        public BatchApiController(IBatchService batchService)
+        public Cloud3DSTKApiController(IBatchService batchService)
         {
             _batchService = batchService;
         }
 
-        // GET: api/BatchApi
-        [HttpGet]
-        public IEnumerable<string> Get()
-        {
-            return new string[] { "value1", "value2" };
-        }
-
-        // GET: api/BatchApi/5
-        [HttpGet("{id}", Name = "Get")]
-        public string Get(int id)
-        {
-            return "value";
-        }
-
-        // POST: api/BatchApi
+        // POST: api/Cloud3DSTKApi
         [HttpPost]
-        [Route("api/Create3DSTKDeployment")]
         public async Task<IActionResult> Post(
             [FromBody] JObject jsonBody)
         {
@@ -83,18 +68,6 @@ namespace BatchPoolWebApp.Api
             }
             
             return Ok();
-        }
-
-        // PUT: api/BatchApi/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody]string value)
-        {
-        }
-
-        // DELETE: api/ApiWithActions/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
         }
     }
 }

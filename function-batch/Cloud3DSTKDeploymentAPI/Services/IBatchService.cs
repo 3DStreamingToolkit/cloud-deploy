@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace BatchPoolWebApp.Services
+namespace Cloud3DSTKDeploymentAPI.Services
 {
     public interface IBatchService
     {
