@@ -7,6 +7,7 @@ namespace Cloud3DSTKDeploymentAPI.Services
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using Microsoft.Azure.Batch;
+    using Microsoft.Azure.Batch.Common;
 
     /// <summary>
     /// The interface to hold all batch related methods
@@ -25,7 +26,23 @@ namespace Cloud3DSTKDeploymentAPI.Services
         /// <param name="poolId">The pool ID to be created</param>
         /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<bool> CreateTurnPool(string poolId, int dedicatedNodes);
+        Task<CloudPool> CreateTurnPool(string poolId, int dedicatedNodes);
+
+        /// <summary>
+        /// Method to wait until pool creation is complete
+        /// </summary>
+        /// <param name="pool">The pool</param>
+        /// <param name="desiredState">The desired state of the pool</param>
+        /// <returns>Returns a boolean when the pool is ready</returns>
+        Task<bool> AwaitDesiredPoolState(CloudPool pool, AllocationState desiredState);
+
+        /// <summary>
+        /// Resizes a TURN server pool
+        /// </summary>
+        /// <param name="poolId">The pool ID to be resized</param>
+        /// <param name="dedicatedNodes">The new number of dedicated nodes inside the pool</param>
+        /// <returns>Returns a boolean if the creation was successful</returns>
+        Task<bool> ResizeTurnPool(string poolId, int dedicatedNodes);
 
         /// <summary>
         /// Creates a rendering server pool
@@ -33,7 +50,7 @@ namespace Cloud3DSTKDeploymentAPI.Services
         /// <param name="poolId">The pool ID to be created</param>
         /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<bool> CreateRenderingPool(string poolId, int dedicatedNodes);
+        Task<CloudPool> CreateRenderingPool(string poolId, int dedicatedNodes);
 
         /// <summary>
         /// Creates the rendering tasks for each node inside the pool

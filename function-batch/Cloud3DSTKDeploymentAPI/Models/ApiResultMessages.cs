@@ -24,6 +24,16 @@ namespace Cloud3DSTKDeploymentAPI.Models
         public static string ErrorBodyIsEmpty { get; } = "A json body is required";
 
         /// <summary>
+        /// Gets the string error when turn pool was not successful
+        /// </summary>
+        public static string ErrorToCreateTurnPool { get; } = "Creating a TURN pool was not successful. Please check the batch client for errors.";
+
+        /// <summary>
+        /// Gets the string error when turn pool was not successful
+        /// </summary>
+        public static string ErrorToCreateRenderingPool { get; } = "Creating a rendering pool was not successful. Please check the batch client for errors.";
+        
+        /// <summary>
         /// Gets the string error when no signaling uri or port is found
         /// </summary>
         public static string ErrorNoSignalingFound { get; } = "Signaling is required";

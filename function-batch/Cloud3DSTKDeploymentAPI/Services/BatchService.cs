@@ -61,20 +61,44 @@ namespace Cloud3DSTKDeploymentAPI.Services
         }
 
         /// <summary>
+        /// Resizes a TURN server pool
+        /// </summary>
+        /// <param name="poolId">The pool ID to be resized</param>
+        /// <param name="dedicatedNodes">The new number of dedicated nodes inside the pool</param>
+        /// <returns>Returns a boolean if the creation was successful</returns>
+        public async Task<bool> ResizeTurnPool(string poolId, int dedicatedNodes)
+        {
+            var pool = await this.batchClient.PoolOperations.GetPoolAsync(poolId);
+            if (pool == null)
+            {
+                return false;
+            }
+
+            if (pool.CurrentDedicatedComputeNodes == dedicatedNodes)
+            {
+                return false;
+            }
+
+            await pool.ResizeAsync(dedicatedNodes, 0, TimeSpan.FromMinutes(30));
+            return true;
+        }
+
+        /// <summary>
         /// Creates a TURN server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be created</param>
         /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        public async Task<bool> CreateTurnPool(string poolId, int dedicatedNodes)
+        public async Task<CloudPool> CreateTurnPool(string poolId, int dedicatedNodes)
         {
+            CloudPool pool;
             try
             {
                 Console.WriteLine("Creating Linux pool [{0}]...", poolId);
 
                 // Create the unbound pool. Until we call CloudPool.Commit() or CommitAsync(), no pool is actually created in the
                 // Batch service. This CloudPool instance is therefore considered "unbound," and we can modify its properties.
-                var pool = this.batchClient.PoolOperations.CreatePool(
+                pool = this.batchClient.PoolOperations.CreatePool(
                     poolId: poolId,
                     targetDedicatedComputeNodes: dedicatedNodes,
                     virtualMachineSize: "STANDARD_A1",
@@ -104,11 +128,39 @@ namespace Cloud3DSTKDeploymentAPI.Services
                 if (be.RequestInformation?.BatchError != null && be.RequestInformation.BatchError.Code == BatchErrorCodeStrings.PoolExists)
                 {
                     Console.WriteLine("The pool {0} already existed when we tried to create it", poolId);
-                    return false;
+                    return null;
                 }
                 else
                 {
                     throw; // Any other exception is unexpected
+                }
+            }
+
+            return pool;
+        }
+
+        /// <summary>
+        /// Method to wait until desired pool state is achieved
+        /// </summary>
+        /// <param name="pool">The pool</param>
+        /// <param name="desiredState">The desired state of the pool</param>
+        /// <returns>Returns a boolean when the pool is ready</returns>
+        public async Task<bool> AwaitDesiredPoolState(CloudPool pool, AllocationState desiredState)
+        {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            watch.Start();
+
+            // Refresh pool to get latest state
+            await pool.RefreshAsync();
+
+            while (pool.AllocationState != desiredState)
+            {
+                await Task.Delay(5000);
+
+                // Timeout after 30 minutes
+                if (watch.ElapsedTicks > TimeSpan.TicksPerHour / 2)
+                {
+                    return false;
                 }
             }
 
@@ -121,15 +173,16 @@ namespace Cloud3DSTKDeploymentAPI.Services
         /// <param name="poolId">The pool ID to be created</param>
         /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        public async Task<bool> CreateRenderingPool(string poolId, int dedicatedNodes)
+        public async Task<CloudPool> CreateRenderingPool(string poolId, int dedicatedNodes)
         {
+            CloudPool pool;
             try
             {
                 Console.WriteLine("Creating pool [{0}]...", poolId);
 
                 // Create the unbound pool. Until we call CloudPool.Commit() or CommitAsync(), no pool is actually created in the
                 // Batch service. This CloudPool instance is therefore considered "unbound," and we can modify its properties.
-                var pool = this.batchClient.PoolOperations.CreatePool(
+                pool = this.batchClient.PoolOperations.CreatePool(
                     poolId: poolId,
                     targetDedicatedComputeNodes: dedicatedNodes,
                     virtualMachineSize: "Standard_NV6",  // NV-series, 6 CPU, 1 GPU, 56 GB RAM 
@@ -196,7 +249,7 @@ namespace Cloud3DSTKDeploymentAPI.Services
                 if (be.RequestInformation?.BatchError != null && be.RequestInformation.BatchError.Code == BatchErrorCodeStrings.PoolExists)
                 {
                     Console.WriteLine("The pool {0} already existed when we tried to create it", poolId);
-                    return false;
+                    return null;
                 }
                 else
                 {
@@ -204,7 +257,7 @@ namespace Cloud3DSTKDeploymentAPI.Services
                 }
             }
 
-            return true;
+            return pool;
         }
 
         /// <summary>

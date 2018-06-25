@@ -24,7 +24,7 @@ namespace Cloud3DSTKDeploymentAPI.Controllers
         private readonly IBatchService batchService;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Cloud3DSTKApiController" /> class
+        /// Initializes a new instance of the <see cref="Cloud3DSTKController" /> class
         /// </summary>
         /// <param name="batchService">An instance of the batch service</param>
         public Cloud3DSTKController(IBatchService batchService)
@@ -77,13 +77,25 @@ namespace Cloud3DSTKDeploymentAPI.Controllers
             var turnPool = this.batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == turnPoolId);
             if (turnPool == null)
             {
-                await this.batchService.CreateTurnPool(turnPoolId, dedicatedTurnNodes);
+                turnPool = await this.batchService.CreateTurnPool(turnPoolId, dedicatedTurnNodes);
+                var result = await this.batchService.AwaitDesiredPoolState(turnPool, Microsoft.Azure.Batch.Common.AllocationState.Steady);
+
+                if (!result)
+                {
+                    return this.StatusCode(500, ApiResultMessages.ErrorToCreateTurnPool);
+                }
             }
 
             var renderingPool = this.batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == renderingPoolId);
             if (renderingPool == null)
             {
-                await this.batchService.CreateRenderingPool(renderingPoolId, dedicatedRenderingNodes);
+                renderingPool = await this.batchService.CreateRenderingPool(renderingPoolId, dedicatedRenderingNodes);
+                var result = await this.batchService.AwaitDesiredPoolState(renderingPool, Microsoft.Azure.Batch.Common.AllocationState.Steady);
+                
+                if (!result)
+                {
+                    return this.StatusCode(500, ApiResultMessages.ErrorToCreateRenderingPool);
+                }
 
                 await this.batchService.CreateJobAsync(renderingJobId, renderingPoolId);
                 for (var i = 0; i < dedicatedRenderingNodes; i++)
