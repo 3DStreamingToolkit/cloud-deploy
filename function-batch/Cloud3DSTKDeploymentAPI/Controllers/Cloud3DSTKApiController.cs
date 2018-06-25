@@ -1,31 +1,52 @@
-﻿
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License.
 
 namespace Cloud3DSTKDeploymentAPI.Controllers
 {
+    using System;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Cloud3DSTKDeploymentAPI.Models;
     using Cloud3DSTKDeploymentAPI.Services;
     using Microsoft.AspNetCore.Mvc;
     using Newtonsoft.Json.Linq;
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
 
+    /// <summary>
+    /// Api controller for 3D Streaming Toolkit cloud scaling 
+    /// </summary>
     [Produces("application/json")]
     [Route("api/[controller]")]
     public class Cloud3DSTKApiController : Controller
     {
-        private readonly IBatchService _batchService;
+        /// <summary>
+        /// Interface to the batch service
+        /// </summary>
+        private readonly IBatchService batchService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Cloud3DSTKApiController" /> class
+        /// </summary>
+        /// <param name="batchService">An instance of the batch service</param>
         public Cloud3DSTKApiController(IBatchService batchService)
         {
-            _batchService = batchService;
+            this.batchService = batchService;
         }
 
-        // POST: api/Cloud3DSTKApi
+        /// <summary>
+        /// The Post method 
+        /// </summary>
+        /// <param name="jsonBody">The post json body</param>
+        /// <returns>The call result as a <see cref="IActionResult" /> class</returns>
         [HttpPost]
+        [Route("create")]
         public async Task<IActionResult> Post(
             [FromBody] JObject jsonBody)
         {
+            if (jsonBody == null)
+            {
+                return this.BadRequest(ApiResultMessages.ErrorBodyIsEmpty);
+            }
+
             var signalingServer = jsonBody["signalingServer"]?.ToObject<string>();
             var signalingServerPort = jsonBody["signalingServerPort"]?.ToObject<int>();
             string turnPoolId = jsonBody["turnPoolId"]?.ToObject<string>() ?? "DefaultTurnPool";
@@ -37,37 +58,43 @@ namespace Cloud3DSTKDeploymentAPI.Controllers
 
             // Signaling URL and port is required
             if (string.IsNullOrEmpty(signalingServer) || !signalingServerPort.HasValue)
-                return BadRequest("Signaling is required");
+            {
+                return this.BadRequest(ApiResultMessages.ErrorNoSignalingFound);
+            }
 
             // Each pool must have at least one dedicated node
             if (dedicatedRenderingNodes < 1 || dedicatedTurnNodes < 1)
-                return BadRequest("Pools must have at least one dedicated node");
+            {
+                return this.BadRequest(ApiResultMessages.ErrorOneDedicatedNodeRequired);
+            }
 
             // Each rendering node must have at least one max user
             if (maxUsersPerRenderingNode < 1)
-                return BadRequest("Rendering nodes must have at least one max user");
-
-            var linuxPool = _batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == turnPoolId);
-            if (linuxPool == null)
             {
-                await _batchService.CreateLinuxPool(turnPoolId, dedicatedTurnNodes);
+                return this.BadRequest(ApiResultMessages.ErrorOneMaxUserRequired);
             }
 
-            var renderingPool = _batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == renderingPoolId);
+            var turnPool = this.batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == turnPoolId);
+            if (turnPool == null)
+            {
+                await this.batchService.CreateTurnPool(turnPoolId, dedicatedTurnNodes);
+            }
+
+            var renderingPool = this.batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == renderingPoolId);
             if (renderingPool == null)
             {
-                await _batchService.CreateWindowsPool(renderingPoolId, dedicatedRenderingNodes);
+                await this.batchService.CreateRenderingPool(renderingPoolId, dedicatedRenderingNodes);
 
-                await _batchService.CreateJobAsync(renderingJobId, renderingPoolId);
+                await this.batchService.CreateJobAsync(renderingJobId, renderingPoolId);
                 for (var i = 0; i < dedicatedRenderingNodes; i++)
                 {
-                    await _batchService.AddWindowsTasksAsync(turnPoolId, renderingJobId, signalingServer, signalingServerPort.Value, maxUsersPerRenderingNode);
+                    await this.batchService.AddRenderingTasksAsync(turnPoolId, renderingJobId, signalingServer, signalingServerPort.Value, maxUsersPerRenderingNode);
                 }
 
-                await _batchService.MonitorTasks(renderingJobId, new TimeSpan(0, 20, 0));
+                await this.batchService.MonitorTasks(renderingJobId, new TimeSpan(0, 20, 0));
             }
             
-            return Ok();
+            return this.Ok();
         }
     }
 }
