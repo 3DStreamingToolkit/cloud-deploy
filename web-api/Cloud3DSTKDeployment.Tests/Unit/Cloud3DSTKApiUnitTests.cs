@@ -22,6 +22,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
+        [Priority(1)]
         public async Task CreateReturnsInvalidRequestWhenNoBody()
         {
             var controller = ControllerExtensions.NewController();
@@ -36,6 +37,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
+        [Priority(1)]
         public async Task CreateReturnsInvalidRequestWhenNoSignalingUriPresent()
         {
             var controller = ControllerExtensions.NewController();
@@ -57,6 +59,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
+        [Priority(1)]
         public async Task CreateReturnsInvalidRequestWhenNoDedicatedNodes()
         {
             var controller = ControllerExtensions.NewController();
@@ -80,6 +83,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
+        [Priority(1)]
         public async Task CreateReturnsInvalidRequestWhenMaxUsersIs0()
         {
             var controller = ControllerExtensions.NewController();
@@ -105,6 +109,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
+        [Priority(1)]
         public async Task DeletePoolReturnsInvalidRequestWhenNoBody()
         {
             var controller = ControllerExtensions.NewController();
@@ -120,6 +125,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
+        [Priority(1)]
         public async Task DeletePoolReturnsInvalidRequestWhenPoolIdIsMissing()
         {
             var controller = ControllerExtensions.NewController();

@@ -24,6 +24,7 @@ namespace Cloud3DSTKDeployment.Tests.Functional
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
+        [Priority(2)]
         public async Task FunctionalEndToEndCreateTest()
         {
             var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
@@ -57,6 +58,7 @@ namespace Cloud3DSTKDeployment.Tests.Functional
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
+        [Priority(2)]
         public async Task FunctionalDeletePoolIdTest()
         {
             var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
