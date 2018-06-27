@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud3DSTKDeployment", "Cloud3DSTKDeployment\Cloud3DSTKDeployment.csproj", "{CFD61521-ADED-4234-95E0-41CF5C9475AB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud3DSTKDeployment", "Cloud3DSTKDeployment\Cloud3DSTKDeployment.csproj", "{A7105822-19E4-4F4D-8FB4-B5F7F974FA6E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud3DSTKDeployment.Tests", "Cloud3DSTKDeployment.Tests\Cloud3DSTKDeployment.Tests.csproj", "{03D846DF-3E98-4A2A-88C3-7AA3A25231B9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cloud3DSTKDeployment.Tests", "Cloud3DSTKDeployment.Tests\Cloud3DSTKDeployment.Tests.csproj", "{19E9959F-B778-401D-91D1-EB151A85AD8C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -13,14 +13,14 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{CFD61521-ADED-4234-95E0-41CF5C9475AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{CFD61521-ADED-4234-95E0-41CF5C9475AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{CFD61521-ADED-4234-95E0-41CF5C9475AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CFD61521-ADED-4234-95E0-41CF5C9475AB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{03D846DF-3E98-4A2A-88C3-7AA3A25231B9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{03D846DF-3E98-4A2A-88C3-7AA3A25231B9}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{03D846DF-3E98-4A2A-88C3-7AA3A25231B9}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{03D846DF-3E98-4A2A-88C3-7AA3A25231B9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7105822-19E4-4F4D-8FB4-B5F7F974FA6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7105822-19E4-4F4D-8FB4-B5F7F974FA6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7105822-19E4-4F4D-8FB4-B5F7F974FA6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7105822-19E4-4F4D-8FB4-B5F7F974FA6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19E9959F-B778-401D-91D1-EB151A85AD8C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19E9959F-B778-401D-91D1-EB151A85AD8C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19E9959F-B778-401D-91D1-EB151A85AD8C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19E9959F-B778-401D-91D1-EB151A85AD8C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
