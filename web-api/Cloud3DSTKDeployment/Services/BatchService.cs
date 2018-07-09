@@ -233,7 +233,6 @@ namespace Cloud3DSTKDeployment.Services
                 pool = this.batchClient.PoolOperations.CreatePool(
                     poolId: poolId,
                     targetDedicatedComputeNodes: dedicatedNodes,
-                    targetLowPriorityComputeNodes: 10,
                     virtualMachineSize: "Standard_NV6",  // NV-series, 6 CPU, 1 GPU, 56 GB RAM 
                     virtualMachineConfiguration: new VirtualMachineConfiguration(
                         new ImageReference(
