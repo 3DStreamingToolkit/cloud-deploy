@@ -50,7 +50,7 @@ namespace Cloud3DSTKDeployment.Controllers
                 return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.ErrorBodyIsEmpty);
             }
 
-            var totalClients = jsonBody["totalClients"]?.ToObject<int>();
+            var totalClients = jsonBody["totalSessions"]?.ToObject<int>();
             var totalSlots = jsonBody["totalSlots"]?.ToObject<int>();
 
             if (!totalClients.HasValue || !totalSlots.HasValue)
@@ -68,8 +68,16 @@ namespace Cloud3DSTKDeployment.Controllers
                 controller.Request.Properties.Add(
                     HttpPropertyKeys.HttpConfigurationKey,
                     new HttpConfiguration());
+
+                // Create a json body with a specific pool and job ID. These should be unique to avoid conflict. 
+                var json = new CreateApiJsonBody
+                {
+                    RenderingPoolId = Guid.NewGuid().ToString(),
+                    RenderingJobId = Guid.NewGuid().ToString()
+                };
                 
-                var result = await controller.Post((JObject)JToken.FromObject(jsonBody));
+                // Spin up a new Rendering Pool
+                var result = await controller.Post((JObject)JToken.FromObject(json));
             }
             
             return Request.CreateResponse(HttpStatusCode.OK);

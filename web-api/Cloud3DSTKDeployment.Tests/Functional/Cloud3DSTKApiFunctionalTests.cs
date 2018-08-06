@@ -7,6 +7,7 @@ namespace Cloud3DSTKDeployment.Tests.Functional
     using System.Net.Http;
     using System.Threading.Tasks;
     using Cloud3DSTKDeployment.Helpers;
+    using Cloud3DSTKDeployment.Models;
     using Cloud3DSTKDeployment.Services;
     using Cloud3DSTKDeployment.Tests.Helpers;
     using Cloud3DSTKDeployment.Tests.Models;

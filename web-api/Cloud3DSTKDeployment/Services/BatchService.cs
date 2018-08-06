@@ -124,7 +124,7 @@ namespace Cloud3DSTKDeployment.Services
         public int GetMaxRenderingSlotsCapacity()
         {
             var allPools = this.GetPoolsInBatch();
-            var totalRenderingPools = allPools.Where(i => i.VirtualMachineConfiguration.ImageReference.Offer.Equals("WindowsServer")).Count();
+            var totalRenderingPools = allPools.Where(i => i.VirtualMachineConfiguration.ImageReference.Offer.Equals("WindowsServer") && i.State != PoolState.Deleting).Count();
             
             return totalRenderingPools * this.dedicatedRenderingNodes * this.maxUsersPerRenderingNode;
         }
@@ -141,7 +141,9 @@ namespace Cloud3DSTKDeployment.Services
                 return false;
             }
 
-            return totalClients / this.GetMaxRenderingSlotsCapacity() * 100 > this.automaticScalingThreshold;
+            var currentCapacity = this.GetMaxRenderingSlotsCapacity();
+
+            return currentCapacity < 1 ? true : totalClients / currentCapacity * 100 > this.automaticScalingThreshold;
         }
 
         /// <summary>
