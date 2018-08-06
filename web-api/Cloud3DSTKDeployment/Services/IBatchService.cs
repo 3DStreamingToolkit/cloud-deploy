@@ -19,15 +19,32 @@ namespace Cloud3DSTKDeployment.Services
         /// </summary>
         /// <returns>Returns a list of pools</returns>
         IList<CloudPool> GetPoolsInBatch();
+        
+        /// <summary>
+        /// Method to return maximum capacity of rendering slots, including pending pools
+        /// </summary>
+        /// <returns>Returns the max rendering slots capacity</returns>
+        int GetMaxRenderingSlotsCapacity();
+
+        /// <summary>
+        /// Method to return if the batch client is approaching rendering capacity
+        /// </summary>
+        /// <param name="totalClients">Total number of connected clients</param>
+        /// <returns>Returns true/false if we are approaching rendering capacity</returns>
+        bool ApproachingRenderingCapacity(int totalClients);
+
+        /// <summary>
+        /// Method to return if the api has a valid configuration
+        /// </summary>
+        /// <returns>Returns an empty string for a valid configuration or an error message if not</returns>
+        string HasValidConfiguration();
 
         /// <summary>
         /// Creates a TURN server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be created</param>
-        /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
-        /// <param name="vnet">The vnet for each node</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<object> CreateTurnPool(string poolId, int dedicatedNodes, string vnet);
+        Task<object> CreateTurnPool(string poolId);
 
         /// <summary>
         /// Method to wait until pool creation is complete
@@ -57,10 +74,8 @@ namespace Cloud3DSTKDeployment.Services
         /// Creates a rendering server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be created</param>
-        /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
-        /// <param name="vnet">The vnet for each node</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<object> CreateRenderingPool(string poolId, int dedicatedNodes, string vnet);
+        Task<object> CreateRenderingPool(string poolId);
 
         /// <summary>
         /// Creates the rendering tasks for each node inside the pool
@@ -68,11 +83,8 @@ namespace Cloud3DSTKDeployment.Services
         /// </summary>
         /// <param name="turnServerIp">The TURN server node ip</param>
         /// <param name="jobId">The job id for the tasks</param>
-        /// <param name="signalingServerURL">The URI for the signaling server</param>
-        /// <param name="signalingServerPort">The port for the signaling server</param>
-        /// <param name="serverCapacity">The max number of concurrent users per rendering node</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<bool> AddRenderingTasksAsync(string turnServerIp, string jobId, string signalingServerURL, int signalingServerPort, int serverCapacity);
+        Task<bool> AddRenderingTasksAsync(string turnServerIp, string jobId);
 
         /// <summary>
         /// Monitors the specified tasks for completion and returns a value indicating whether all tasks completed successfully

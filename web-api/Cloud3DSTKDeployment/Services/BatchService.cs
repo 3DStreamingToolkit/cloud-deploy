@@ -23,7 +23,42 @@ namespace Cloud3DSTKDeployment.Services
         /// Server path inside each VM for the streaming application
         /// </summary>
         private readonly string serverPath = "C:/3dstk/Server";
-        
+
+        /// <summary>
+        /// Number of dedicated TURN nodes per Batch account
+        /// </summary>
+        private int dedicatedTurnNodes = 1;
+
+        /// <summary>
+        /// Number of dedicated rendering nodes per Batch pool
+        /// </summary>
+        private int dedicatedRenderingNodes = 1;
+
+        /// <summary>
+        /// Max number of clients per rendering VM
+        /// </summary>
+        private int maxUsersPerRenderingNode = 1;
+
+        /// <summary>
+        /// The threshold for automatic creation of new rendering pools
+        /// </summary>
+        private int automaticScalingThreshold = int.MaxValue;
+
+        /// <summary>
+        /// The vnet for all batch pools
+        /// </summary>
+        private string vnet;
+
+        /// <summary>
+        /// The signaling server url
+        /// </summary>
+        private string signalingServerUrl;
+
+        /// <summary>
+        /// The signaling server port
+        /// </summary>
+        private int signalingServerPort = int.MaxValue;
+
         /// <summary>
         /// Batch client private instance
         /// </summary>
@@ -40,6 +75,15 @@ namespace Cloud3DSTKDeployment.Services
             var batchAccountName = Configuration["BatchAccountName"];
             var batchAccountKey = Configuration["BatchAccountKey"];
             var batchAccountUrl = Configuration["BatchAccountUrl"];
+
+            int.TryParse(Configuration["DedicatedTurnNodes"], out this.dedicatedTurnNodes);
+            int.TryParse(Configuration["DedicatedRenderingNodes"], out this.dedicatedRenderingNodes);
+            int.TryParse(Configuration["MaxUsersPerRenderingNode"], out this.maxUsersPerRenderingNode);
+            int.TryParse(Configuration["AutomaticScalingThreshold"], out this.automaticScalingThreshold);
+            int.TryParse(Configuration["SignalingServerPort"], out this.signalingServerPort);
+
+            this.signalingServerUrl = Configuration["SignalingServerUrl"];
+            this.vnet = Configuration["Vnet"];
 
             // Use shared credentials. This will not work with vnet and custom images
             BatchSharedKeyCredentials cred = new BatchSharedKeyCredentials(batchAccountUrl, batchAccountName, batchAccountKey);
@@ -74,6 +118,60 @@ namespace Cloud3DSTKDeployment.Services
         }
 
         /// <summary>
+        /// Method to return maximum capacity of rendering slots, including pending pools
+        /// </summary>
+        /// <returns>Returns the max rendering slots capacity</returns>
+        public int GetMaxRenderingSlotsCapacity()
+        {
+            var allPools = this.GetPoolsInBatch();
+            var totalRenderingPools = allPools.Where(i => i.VirtualMachineConfiguration.ImageReference.Offer.Equals("WindowsServer")).Count();
+            
+            return totalRenderingPools * this.dedicatedRenderingNodes * this.maxUsersPerRenderingNode;
+        }
+
+        /// <summary>
+        /// Method to return if the batch client is approaching rendering capacity
+        /// </summary>
+        /// <param name="totalClients">The number of current clients</param>
+        /// <returns>Returns true/false if we are approaching rendering capacity</returns>
+        public bool ApproachingRenderingCapacity(int totalClients)
+        {
+            if (this.automaticScalingThreshold == int.MaxValue)
+            {
+                return false;
+            }
+
+            return totalClients / this.GetMaxRenderingSlotsCapacity() * 100 > this.automaticScalingThreshold;
+        }
+
+        /// <summary>
+        /// Method to return if the api has a valid configuration
+        /// </summary>
+        /// <returns>Returns an empty string for a valid configuration or an error message if not</returns>
+        public string HasValidConfiguration()
+        {
+            // Signaling URL and port is required
+            if (string.IsNullOrEmpty(this.signalingServerUrl) || this.signalingServerPort == int.MaxValue)
+            {
+                return ApiResultMessages.ErrorNoSignalingFound;
+            }
+
+            // Each pool must have at least one dedicated node
+            if (this.dedicatedRenderingNodes < 1 || this.dedicatedTurnNodes < 1)
+            {
+                return ApiResultMessages.ErrorOneDedicatedNodeRequired;
+            }
+
+            // Each rendering node must have at least one max user
+            if (this.maxUsersPerRenderingNode < 1)
+            {
+                return ApiResultMessages.ErrorOneMaxUserRequired;
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
         /// Resizes a TURN server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be resized</param>
@@ -100,10 +198,8 @@ namespace Cloud3DSTKDeployment.Services
         /// Creates a TURN server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be created</param>
-        /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
-        /// <param name="vnet">The vnet for each node</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        public async Task<object> CreateTurnPool(string poolId, int dedicatedNodes, string vnet)
+        public async Task<object> CreateTurnPool(string poolId)
         {
             CloudPool pool;
             try
@@ -114,7 +210,7 @@ namespace Cloud3DSTKDeployment.Services
                 // Batch service. This CloudPool instance is therefore considered "unbound," and we can modify its properties.
                 pool = this.batchClient.PoolOperations.CreatePool(
                     poolId: poolId,
-                    targetDedicatedComputeNodes: dedicatedNodes,
+                    targetDedicatedComputeNodes: this.dedicatedTurnNodes,
                     virtualMachineSize: "STANDARD_A1",
                     virtualMachineConfiguration: new VirtualMachineConfiguration(
                         new ImageReference(
@@ -133,7 +229,7 @@ namespace Cloud3DSTKDeployment.Services
                     MaxTaskRetryCount = 2
                 };
 
-                pool.NetworkConfiguration = this.GetNetworkConfigurationForTURN(vnet);
+                pool.NetworkConfiguration = this.GetNetworkConfigurationForTURN(this.vnet);
 
                 await pool.CommitAsync();
             }
@@ -218,10 +314,8 @@ namespace Cloud3DSTKDeployment.Services
         /// Creates a rendering server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be created</param>
-        /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
-        /// <param name="vnet">The vnet for each node</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        public async Task<object> CreateRenderingPool(string poolId, int dedicatedNodes, string vnet)
+        public async Task<object> CreateRenderingPool(string poolId)
         {
             CloudPool pool;
             try
@@ -232,7 +326,7 @@ namespace Cloud3DSTKDeployment.Services
                 // Batch service. This CloudPool instance is therefore considered "unbound," and we can modify its properties.
                 pool = this.batchClient.PoolOperations.CreatePool(
                     poolId: poolId,
-                    targetDedicatedComputeNodes: dedicatedNodes,
+                    targetDedicatedComputeNodes: this.dedicatedRenderingNodes,
                     virtualMachineSize: "Standard_NV6",  // NV-series, 6 CPU, 1 GPU, 56 GB RAM 
                     virtualMachineConfiguration: new VirtualMachineConfiguration(
                         new ImageReference(
@@ -245,11 +339,11 @@ namespace Cloud3DSTKDeployment.Services
                 pool.MaxTasksPerComputeNode = 1;
                 pool.TaskSchedulingPolicy = new TaskSchedulingPolicy(ComputeNodeFillType.Spread);
 
-                if (!string.IsNullOrWhiteSpace(vnet))
+                if (!string.IsNullOrWhiteSpace(this.vnet))
                 {
                     pool.NetworkConfiguration = new NetworkConfiguration
                     {
-                        SubnetId = vnet
+                        SubnetId = this.vnet
                     };
                 }
                 
@@ -322,11 +416,8 @@ namespace Cloud3DSTKDeployment.Services
         /// </summary>
         /// <param name="turnServerIp">The TURN server public ip</param>
         /// <param name="jobId">The job id for the tasks</param>
-        /// <param name="signalingServerURL">The URI for the signaling server</param>
-        /// <param name="signalingServerPort">The port for the signaling server</param>
-        /// <param name="serverCapacity">The max number of concurrent users per rendering node</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        public async Task<bool> AddRenderingTasksAsync(string turnServerIp, string jobId, string signalingServerURL, int signalingServerPort, int serverCapacity)
+        public async Task<bool> AddRenderingTasksAsync(string turnServerIp, string jobId)
         {
             // Create a collection to hold the tasks that we'll be adding to the job
             List<CloudTask> tasks = new List<CloudTask>();
@@ -338,10 +429,10 @@ namespace Cloud3DSTKDeployment.Services
                     string.Format("turn:{0}:3478", turnServerIp),
                     "username",
                     "password",
-                    signalingServerURL,
-                    signalingServerPort,
+                    this.signalingServerUrl,
+                    this.signalingServerPort,
                     5000,
-                    serverCapacity);
+                    this.maxUsersPerRenderingNode);
 
             CloudTask task = new CloudTask(taskId, startRenderingCommand)
             {

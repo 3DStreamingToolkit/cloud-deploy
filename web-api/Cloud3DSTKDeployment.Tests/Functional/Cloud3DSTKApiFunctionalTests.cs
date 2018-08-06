@@ -28,20 +28,16 @@ namespace Cloud3DSTKDeployment.Tests.Functional
         public async Task FunctionalEndToEndCreateTest()
         {
             var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
+            Assert.IsTrue(string.IsNullOrWhiteSpace(batchService.HasValidConfiguration()));
+            
             var controller = ControllerExtensions.NewController();
 
             // Create a fully functional json body
             var jsonBody = new CreateApiJsonBody
             {
-                SignalingServer = "SIGNALING_SERVER_URI",
-                SignalingServerPort = 80,
-                Vnet = "/subscriptions/{subscription}/resourceGroups/{group}/providers/{provider}/virtualNetworks/{network}/subnets/{subnet}",
-                DedicatedRenderingNodes = 1,
-                DedicatedTurnNodes = 1,
-                MaxUsersPerRenderingNode = 3,
-                RenderingJobId = "JOB_ID",
-                TurnPoolId = "TURN_POOL_ID",
-                RenderingPoolId = "RENDERING_POOL_ID"
+                RenderingJobId = "TEST_JOB",
+                TurnPoolId = "TEST_TURN",
+                RenderingPoolId = "TEST_RENDERING"
             };
 
             var result = await controller.Post((JObject)JToken.FromObject(jsonBody));
@@ -67,7 +63,7 @@ namespace Cloud3DSTKDeployment.Tests.Functional
             // Create a json body with a specific pool id
             var jsonBody = new DeletePoolApiJsonBody
             {
-                PoolId = "RenderingPool"
+                PoolId = "TEST_RENDERING"
             };
 
             var result = await controller.DeletePool((JObject)JToken.FromObject(jsonBody));

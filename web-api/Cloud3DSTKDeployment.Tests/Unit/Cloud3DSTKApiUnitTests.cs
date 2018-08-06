@@ -3,8 +3,10 @@
 
 namespace Cloud3DSTKDeploymentAPI.Tests
 {
+    using System;
     using System.Net.Http;
     using System.Threading.Tasks;
+    using Cloud3DSTKDeployment.Helpers;
     using Cloud3DSTKDeployment.Models;
     using Cloud3DSTKDeployment.Tests.Helpers;
     using Cloud3DSTKDeployment.Tests.Models;
@@ -18,87 +20,59 @@ namespace Cloud3DSTKDeploymentAPI.Tests
     public class Cloud3DSTKApiUnitTests
     {
         /// <summary>
-        /// Unit test for no body post
-        /// </summary>
-        /// <returns>The result of the test</returns>
-        [TestMethod]
-        [Priority(1)]
-        public async Task CreateReturnsInvalidRequestWhenNoBody()
-        {
-            var controller = ControllerExtensions.NewController();
-            var result = await controller.Post(null);
-            
-            Assert.IsInstanceOfType(result, typeof(HttpResponseMessage)); 
-            Assert.IsTrue(((ObjectContent)(result as HttpResponseMessage).Content).Value.ToString().Equals(ApiResultMessages.ErrorBodyIsEmpty));
-        }
-
-        /// <summary>
-        /// Unit test for no signaling uri or port in the post body
+        /// Unit test for no signaling uri or port in configuration
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
         [Priority(1)]
         public async Task CreateReturnsInvalidRequestWhenNoSignalingUriPresent()
         {
-            var controller = ControllerExtensions.NewController();
+            var configuration = ConfigurationHelper.GetConfiguration();
+            configuration["SignalingServerPort"] = null;
+            configuration["SignalingServerUrl"] = string.Empty;
 
-            // Create a json body with no signaling uri
-            var jsonBody = new CreateApiJsonBody
-            {
-                SignalingServerPort = 80
-            };
-            
-            var result = await controller.Post((JObject)JToken.FromObject(jsonBody));
+            var controller = ControllerExtensions.NewController(configuration);
+            var result = await controller.Post(null);
 
             Assert.IsInstanceOfType(result, typeof(HttpResponseMessage));
             Assert.IsTrue(((ObjectContent)(result as HttpResponseMessage).Content).Value.ToString().Equals(ApiResultMessages.ErrorNoSignalingFound));
         }
 
         /// <summary>
-        /// Unit test for 0 dedicated nodes in the post body
+        /// Unit test for 0 dedicated nodes in configuration
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
         [Priority(1)]
         public async Task CreateReturnsInvalidRequestWhenNoDedicatedNodes()
         {
-            var controller = ControllerExtensions.NewController();
+            var configuration = ConfigurationHelper.GetConfiguration();
+            configuration["SignalingServerPort"] = "80";
+            configuration["SignalingServerUrl"] = "http://www.signaling-url.com";
+            configuration["DedicatedRenderingNodes"] = "0";
 
-            // Create a json body with no signaling uri
-            var jsonBody = new CreateApiJsonBody
-            {
-                SignalingServer = "http://test.com",
-                SignalingServerPort = 80,
-                DedicatedRenderingNodes = 0
-            };
-
-            var result = await controller.Post((JObject)JToken.FromObject(jsonBody));
+            var controller = ControllerExtensions.NewController(configuration);
+            var result = await controller.Post(null);
 
             Assert.IsInstanceOfType(result, typeof(HttpResponseMessage));
             Assert.IsTrue(((ObjectContent)(result as HttpResponseMessage).Content).Value.ToString().Equals(ApiResultMessages.ErrorOneDedicatedNodeRequired));
         }
 
         /// <summary>
-        /// Unit test for 0 max users per rendering node in the post body
+        /// Unit test for 0 max users per rendering node in configuration
         /// </summary>
         /// <returns>The result of the test</returns>
         [TestMethod]
         [Priority(1)]
         public async Task CreateReturnsInvalidRequestWhenMaxUsersIs0()
         {
-            var controller = ControllerExtensions.NewController();
+            var configuration = ConfigurationHelper.GetConfiguration();
+            configuration["SignalingServerPort"] = "80";
+            configuration["SignalingServerUrl"] = "http://www.signaling-url.com";
+            configuration["MaxUsersPerRenderingNode"] = "0";
 
-            // Create a json body with no signaling uri
-            var jsonBody = new CreateApiJsonBody
-            {
-                SignalingServer = "http://test.com",
-                SignalingServerPort = 80,
-                DedicatedRenderingNodes = 6,
-                DedicatedTurnNodes = 1,
-                MaxUsersPerRenderingNode = 0
-            };
-
-            var result = await controller.Post((JObject)JToken.FromObject(jsonBody));
+            var controller = ControllerExtensions.NewController(configuration);
+            var result = await controller.Post(null);
 
             Assert.IsInstanceOfType(result, typeof(HttpResponseMessage));
             Assert.IsTrue(((ObjectContent)(result as HttpResponseMessage).Content).Value.ToString().Equals(ApiResultMessages.ErrorOneMaxUserRequired));

@@ -9,6 +9,7 @@ namespace Cloud3DSTKDeployment.Controllers
     using System.Net.Http;
     using System.Threading.Tasks;
     using System.Web.Http;
+    using System.Web.Http.Hosting;
     using Cloud3DSTKDeployment.Helpers;
     using Cloud3DSTKDeployment.Models;
     using Cloud3DSTKDeployment.Services;
@@ -27,7 +28,7 @@ namespace Cloud3DSTKDeployment.Controllers
         private readonly IBatchService batchService;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Cloud3DSTKController" /> class
+        /// Initializes a new instance of the <see cref="Orchestrator3DSTKController" /> class
         /// </summary>
         public Orchestrator3DSTKController()
         {
@@ -40,7 +41,7 @@ namespace Cloud3DSTKDeployment.Controllers
         /// <param name="jsonBody">The post json body</param>
         /// <returns>The call result as a <see cref="IActionResult" /> class</returns>
         [HttpPost]
-        [Route("api/signaling")]
+        [Route("api/orchestrator")]
         public async Task<HttpResponseMessage> Post(
             [FromBody] JObject jsonBody)
         {
@@ -57,6 +58,20 @@ namespace Cloud3DSTKDeployment.Controllers
                 return Request.CreateResponse(HttpStatusCode.BadRequest);
             }
 
+            if (this.batchService.ApproachingRenderingCapacity(totalClients.Value))
+            {
+                var controller = new Cloud3DSTKController
+                {
+                    Request = new HttpRequestMessage()
+                };
+
+                controller.Request.Properties.Add(
+                    HttpPropertyKeys.HttpConfigurationKey,
+                    new HttpConfiguration());
+                
+                var result = await controller.Post((JObject)JToken.FromObject(jsonBody));
+            }
+            
             return Request.CreateResponse(HttpStatusCode.OK);
         }
     }

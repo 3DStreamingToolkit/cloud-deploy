@@ -35,6 +35,15 @@ namespace Cloud3DSTKDeployment.Controllers
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Cloud3DSTKController" /> class with a custom configuration
+        /// </summary>
+        /// <param name="configuration">The configuration used for the batch service</param>
+        public Cloud3DSTKController(Microsoft.Extensions.Configuration.IConfiguration configuration)
+        {
+            this.batchService = new BatchService(configuration);
+        }
+
+        /// <summary>
         /// The create api 
         /// </summary>
         /// <param name="jsonBody">The post json body</param>
@@ -44,39 +53,25 @@ namespace Cloud3DSTKDeployment.Controllers
         public async Task<HttpResponseMessage> Post(
             [FromBody] JObject jsonBody)
         {
-            if (jsonBody == null)
+            string turnPoolId = "DefaultTurnPool";
+            string renderingPoolId = "DefaultRenderingPool";
+            string renderingJobId = "3DSTKRenderingJob";
+
+            if (jsonBody != null)
             {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.ErrorBodyIsEmpty);
+                turnPoolId = jsonBody["turnPoolId"]?.ToObject<string>() ?? "DefaultTurnPool";
+                renderingPoolId = jsonBody["renderingPoolId"]?.ToObject<string>() ?? "DefaultRenderingPool";
+                renderingJobId = jsonBody["renderingJobId"]?.ToObject<string>() ?? "3DSTKRenderingJob";
             }
             
-            var signalingServer = jsonBody["signalingServer"]?.ToObject<string>();
-            var signalingServerPort = jsonBody["signalingServerPort"]?.ToObject<int>();
-            var vnet = jsonBody["vnet"]?.ToObject<string>() ?? string.Empty;
-            string turnPoolId = jsonBody["turnPoolId"]?.ToObject<string>() ?? "DefaultTurnPool";
-            string renderingPoolId = jsonBody["renderingPoolId"]?.ToObject<string>() ?? "DefaultRenderingPool";
-            int dedicatedTurnNodes = jsonBody["dedicatedTurnNodes"]?.ToObject<int>() ?? 1;
-            int dedicatedRenderingNodes = jsonBody["dedicatedRenderingNodes"]?.ToObject<int>() ?? 1;
-            int maxUsersPerRenderingNode = jsonBody["maxUsersPerRenderingNode"]?.ToObject<int>() ?? 1;
-            string renderingJobId = jsonBody["renderingJobId"]?.ToObject<string>() ?? "3DSTKRenderingJob";
+            var configurationCheckMessage = this.batchService.HasValidConfiguration();
 
-            // Signaling URL and port is required
-            if (string.IsNullOrEmpty(signalingServer) || !signalingServerPort.HasValue)
+            // Check for a valid configuration
+            if (!string.IsNullOrWhiteSpace(configurationCheckMessage))
             {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.ErrorNoSignalingFound);
+                return Request.CreateResponse(HttpStatusCode.BadRequest, configurationCheckMessage);
             }
-           
-            // Each pool must have at least one dedicated node
-            if (dedicatedRenderingNodes < 1 || dedicatedTurnNodes < 1)
-            {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.ErrorOneDedicatedNodeRequired);
-            }
-
-            // Each rendering node must have at least one max user
-            if (maxUsersPerRenderingNode < 1)
-            {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.ErrorOneMaxUserRequired);
-            }
-
+          
             // Check if rendering pool already exists
             var renderingPool = this.batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == renderingPoolId);
             if (renderingPool != null)
@@ -95,7 +90,7 @@ namespace Cloud3DSTKDeployment.Controllers
             var turnPool = this.batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == turnPoolId);
             if (turnPool == null)
             {
-                var turnPoolObject = await this.batchService.CreateTurnPool(turnPoolId, dedicatedTurnNodes, vnet);
+                var turnPoolObject = await this.batchService.CreateTurnPool(turnPoolId);
                 if (turnPoolObject.GetType() == typeof(string))
                 {
                     await this.batchService.DeleteJobAsync(renderingJobId);
@@ -123,7 +118,7 @@ namespace Cloud3DSTKDeployment.Controllers
             }
 
             // Create the rendering pool 
-            var renderingPoolObject = await this.batchService.CreateRenderingPool(renderingPoolId, dedicatedRenderingNodes, vnet);
+            var renderingPoolObject = await this.batchService.CreateRenderingPool(renderingPoolId);
             if (renderingPoolObject.GetType() == typeof(string))
             {
                 await this.batchService.DeleteJobAsync(renderingJobId);
@@ -176,7 +171,7 @@ namespace Cloud3DSTKDeployment.Controllers
             // Since we waited for all nodes to be ready, we can now spread the tasks evenly 
             for (var i = 0; i < readyNodes; i++)
             {
-                await this.batchService.AddRenderingTasksAsync(rdp.IPAddress, renderingJobId, signalingServer, signalingServerPort.Value, maxUsersPerRenderingNode);
+                await this.batchService.AddRenderingTasksAsync(rdp.IPAddress, renderingJobId);
             }
 
             await this.batchService.MonitorTasks(renderingJobId, new TimeSpan(0, 20, 0));
