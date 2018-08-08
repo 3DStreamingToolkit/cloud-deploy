@@ -69,8 +69,9 @@ namespace Cloud3DSTKDeploymentAPI.Tests
             var configuration = ConfigurationHelper.GetConfiguration();
             configuration["SignalingServerPort"] = "80";
             configuration["SignalingServerUrl"] = "http://www.signaling-url.com";
+            configuration["DedicatedRenderingNodes"] = "1";
             configuration["MaxUsersPerRenderingNode"] = "0";
-
+            
             var controller = ControllerExtensions.NewCloudController(configuration);
             var result = await controller.Post(null);
 
