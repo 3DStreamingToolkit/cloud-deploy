@@ -145,7 +145,7 @@ namespace Cloud3DSTKDeployment.Services
         /// <returns>Returns true/false if we are approaching rendering capacity</returns>
         public bool ApproachingRenderingCapacity(int totalClients)
         {
-            if (this.IsAutoScaling())
+            if (!this.IsAutoScaling())
             {
                 return false;
             }
