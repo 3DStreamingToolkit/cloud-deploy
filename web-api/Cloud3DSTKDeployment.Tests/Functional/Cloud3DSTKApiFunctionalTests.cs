@@ -31,7 +31,7 @@ namespace Cloud3DSTKDeployment.Tests.Functional
             var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
             Assert.IsTrue(string.IsNullOrWhiteSpace(batchService.HasValidConfiguration()));
             
-            var controller = ControllerExtensions.NewController();
+            var controller = ControllerExtensions.NewCloudController();
 
             // Create a fully functional json body
             var jsonBody = new CreateApiJsonBody
@@ -59,7 +59,7 @@ namespace Cloud3DSTKDeployment.Tests.Functional
         public async Task FunctionalDeletePoolIdTest()
         {
             var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
-            var controller = ControllerExtensions.NewController();
+            var controller = ControllerExtensions.NewCloudController();
 
             // Create a json body with a specific pool id
             var jsonBody = new DeletePoolApiJsonBody

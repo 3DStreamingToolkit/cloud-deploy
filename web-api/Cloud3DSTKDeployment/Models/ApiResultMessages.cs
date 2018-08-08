@@ -19,6 +19,11 @@ namespace Cloud3DSTKDeployment.Models
         public static string FailureMessage { get; } = "One or more tasks failed to reach the Completed state within the timeout period";
 
         /// <summary>
+        /// Gets the string error when auto scaling is not enabled
+        /// </summary>
+        public static string WarningNoAutoscaling { get; } = "Auto scaling is not enabled";
+
+        /// <summary>
         /// Gets the string error when no body was found
         /// </summary>
         public static string ErrorBodyIsEmpty { get; } = "A json body is required";

@@ -42,7 +42,7 @@ namespace Cloud3DSTKDeployment.Services
         /// <summary>
         /// The threshold for automatic creation of new rendering pools
         /// </summary>
-        private int automaticScalingThreshold = int.MaxValue;
+        private int automaticScalingThreshold = 0;
 
         /// <summary>
         /// The vnet for all batch pools
@@ -130,13 +130,22 @@ namespace Cloud3DSTKDeployment.Services
         }
 
         /// <summary>
+        /// Method to return if auto scaling is enabled
+        /// </summary>
+        /// <returns>Returns if auto scale is enabled</returns>
+        public bool IsAutoScaling()
+        {
+            return this.automaticScalingThreshold > 0;
+        }
+
+        /// <summary>
         /// Method to return if the batch client is approaching rendering capacity
         /// </summary>
         /// <param name="totalClients">The number of current clients</param>
         /// <returns>Returns true/false if we are approaching rendering capacity</returns>
         public bool ApproachingRenderingCapacity(int totalClients)
         {
-            if (this.automaticScalingThreshold == int.MaxValue)
+            if (this.IsAutoScaling())
             {
                 return false;
             }

@@ -31,7 +31,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
             configuration["SignalingServerPort"] = null;
             configuration["SignalingServerUrl"] = string.Empty;
 
-            var controller = ControllerExtensions.NewController(configuration);
+            var controller = ControllerExtensions.NewCloudController(configuration);
             var result = await controller.Post(null);
 
             Assert.IsInstanceOfType(result, typeof(HttpResponseMessage));
@@ -51,7 +51,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
             configuration["SignalingServerUrl"] = "http://www.signaling-url.com";
             configuration["DedicatedRenderingNodes"] = "0";
 
-            var controller = ControllerExtensions.NewController(configuration);
+            var controller = ControllerExtensions.NewCloudController(configuration);
             var result = await controller.Post(null);
 
             Assert.IsInstanceOfType(result, typeof(HttpResponseMessage));
@@ -71,7 +71,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
             configuration["SignalingServerUrl"] = "http://www.signaling-url.com";
             configuration["MaxUsersPerRenderingNode"] = "0";
 
-            var controller = ControllerExtensions.NewController(configuration);
+            var controller = ControllerExtensions.NewCloudController(configuration);
             var result = await controller.Post(null);
 
             Assert.IsInstanceOfType(result, typeof(HttpResponseMessage));
@@ -86,7 +86,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         [Priority(1)]
         public async Task DeletePoolReturnsInvalidRequestWhenNoBody()
         {
-            var controller = ControllerExtensions.NewController();
+            var controller = ControllerExtensions.NewCloudController();
 
             var result = await controller.DeletePool(null);
 
@@ -102,7 +102,7 @@ namespace Cloud3DSTKDeploymentAPI.Tests
         [Priority(1)]
         public async Task DeletePoolReturnsInvalidRequestWhenPoolIdIsMissing()
         {
-            var controller = ControllerExtensions.NewController();
+            var controller = ControllerExtensions.NewCloudController();
 
             // Create a json body with no pool id
             var jsonBody = new DeletePoolApiJsonBody

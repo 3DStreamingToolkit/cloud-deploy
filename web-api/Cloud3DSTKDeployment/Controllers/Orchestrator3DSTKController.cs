@@ -36,6 +36,15 @@ namespace Cloud3DSTKDeployment.Controllers
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Orchestrator3DSTKController" /> class
+        /// </summary>
+        /// <param name="configuration">The configuration used for the batch service</param> with a custom configuration
+        public Orchestrator3DSTKController(Microsoft.Extensions.Configuration.IConfiguration configuration)
+        {
+            this.batchService = new BatchService(ConfigurationHelper.GetConfiguration());
+        }
+
+        /// <summary>
         /// The create api 
         /// </summary>
         /// <param name="jsonBody">The post json body</param>
@@ -50,6 +59,11 @@ namespace Cloud3DSTKDeployment.Controllers
                 return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.ErrorBodyIsEmpty);
             }
 
+            if (!this.batchService.IsAutoScaling())
+            {
+                return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.WarningNoAutoscaling);
+            }
+
             var totalClients = jsonBody["totalSessions"]?.ToObject<int>();
             var totalSlots = jsonBody["totalSlots"]?.ToObject<int>();
 
@@ -57,7 +71,7 @@ namespace Cloud3DSTKDeployment.Controllers
             {
                 return Request.CreateResponse(HttpStatusCode.BadRequest);
             }
-
+            
             if (this.batchService.ApproachingRenderingCapacity(totalClients.Value))
             {
                 var controller = new Cloud3DSTKController

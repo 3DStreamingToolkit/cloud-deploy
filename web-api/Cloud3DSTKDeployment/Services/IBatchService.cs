@@ -34,6 +34,12 @@ namespace Cloud3DSTKDeployment.Services
         bool ApproachingRenderingCapacity(int totalClients);
 
         /// <summary>
+        /// Method to return if the orchestrator is handling auto scaling
+        /// </summary>
+        /// <returns>Returns if the orchestrator is handling auto scaling</returns>
+        bool IsAutoScaling();
+
+        /// <summary>
         /// Method to return if the api has a valid configuration
         /// </summary>
         /// <returns>Returns an empty string for a valid configuration or an error message if not</returns>
