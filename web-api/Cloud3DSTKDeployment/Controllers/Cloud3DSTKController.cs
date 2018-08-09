@@ -55,13 +55,11 @@ namespace Cloud3DSTKDeployment.Controllers
         {
             string turnPoolId = "DefaultTurnPool";
             string renderingPoolId = "DefaultRenderingPool";
-            string renderingJobId = "3DSTKRenderingJob";
 
             if (jsonBody != null)
             {
                 turnPoolId = jsonBody["turnPoolId"]?.ToObject<string>() ?? "DefaultTurnPool";
                 renderingPoolId = jsonBody["renderingPoolId"]?.ToObject<string>() ?? "DefaultRenderingPool";
-                renderingJobId = jsonBody["renderingJobId"]?.ToObject<string>() ?? "3DSTKRenderingJob";
             }
             
             var configurationCheckMessage = this.batchService.HasValidConfiguration();
@@ -79,13 +77,6 @@ namespace Cloud3DSTKDeployment.Controllers
                 return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.ErrorRenderingPoolExists);
             }
 
-            // Create the rendering job
-            var createJobResult = await this.batchService.CreateJobAsync(renderingJobId, renderingPoolId);
-            if (!string.IsNullOrEmpty(createJobResult))
-            {
-                return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.ErrorJobExists);
-            }
-
             // Create the TURN pool 
             var turnPool = this.batchService.GetPoolsInBatch().FirstOrDefault((s) => s.Id == turnPoolId);
             if (turnPool == null)
@@ -93,7 +84,6 @@ namespace Cloud3DSTKDeployment.Controllers
                 var turnPoolObject = await this.batchService.CreateTurnPool(turnPoolId);
                 if (turnPoolObject.GetType() == typeof(string))
                 {
-                    await this.batchService.DeleteJobAsync(renderingJobId);
                     return Request.CreateResponse(HttpStatusCode.BadRequest, turnPoolObject);
                 }
 
@@ -102,7 +92,6 @@ namespace Cloud3DSTKDeployment.Controllers
                 var turnCreationResult = await this.batchService.AwaitDesiredPoolState(turnPool, AllocationState.Steady);
                 if (!turnCreationResult)
                 {
-                    await this.batchService.DeleteJobAsync(renderingJobId);
                     return Request.CreateResponse(HttpStatusCode.BadRequest, ApiResultMessages.ErrorToCreateTurnPool);
                 }
             }
@@ -113,15 +102,22 @@ namespace Cloud3DSTKDeployment.Controllers
 
             if (topNode == null)
             {
-                await this.batchService.DeleteJobAsync(renderingJobId);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, ApiResultMessages.ErrorTurnServerInvalid);
             }
 
+            // Wait until the TURN node is ready
+            var result = await this.batchService.AwaitDesiredNodeState(topNode, ComputeNodeState.Idle);
+            if (!result)
+            {
+                return Request.CreateResponse(HttpStatusCode.InternalServerError, ApiResultMessages.ErrorTurnServerInvalid);
+            }
+            
+            var rdp = topNode.GetRemoteLoginSettings();
+            
             // Create the rendering pool 
-            var renderingPoolObject = await this.batchService.CreateRenderingPool(renderingPoolId);
+            var renderingPoolObject = await this.batchService.CreateRenderingPool(renderingPoolId, rdp.IPAddress);
             if (renderingPoolObject.GetType() == typeof(string))
             {
-                await this.batchService.DeleteJobAsync(renderingJobId);
                 return Request.CreateResponse(HttpStatusCode.BadRequest, renderingPoolObject);
             }
 
@@ -130,19 +126,8 @@ namespace Cloud3DSTKDeployment.Controllers
             var renderingCreationResult = await this.batchService.AwaitDesiredPoolState(renderingPool, AllocationState.Steady);
             if (!renderingCreationResult)
             {
-                await this.batchService.DeleteJobAsync(renderingJobId);
                 return Request.CreateResponse(HttpStatusCode.InternalServerError, ApiResultMessages.ErrorToCreateRenderingPool);
             }
-
-            // Wait until the TURN node is ready
-            var result = await this.batchService.AwaitDesiredNodeState(topNode, ComputeNodeState.Idle);
-            if (!result)
-            {
-                await this.batchService.DeleteJobAsync(renderingJobId);
-                return Request.CreateResponse(HttpStatusCode.InternalServerError, ApiResultMessages.ErrorTurnServerInvalid);
-            }
-            
-            var rdp = topNode.GetRemoteLoginSettings();
 
             // Wait until all rendering nodes are ready
             var renderingNodes = renderingPool.ListComputeNodes();
@@ -165,17 +150,6 @@ namespace Cloud3DSTKDeployment.Controllers
                     readyNodes--;
                 }
             }
-            
-            // Each task will add the correct TURN and signaling uri for the rendering server 
-            // Azure batch runs tasks as part of a queue so any node can take them
-            // Since we waited for all nodes to be ready, we can now spread the tasks evenly 
-            for (var i = 0; i < readyNodes; i++)
-            {
-                await this.batchService.AddRenderingTasksAsync(rdp.IPAddress, renderingJobId);
-            }
-
-            await this.batchService.MonitorTasks(renderingJobId, new TimeSpan(0, 20, 0));
-            await this.batchService.DeleteJobAsync(renderingJobId);
 
             return Request.CreateResponse(HttpStatusCode.OK);
         }

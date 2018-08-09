@@ -19,12 +19,6 @@ namespace Cloud3DSTKDeployment.Models
         public string RenderingPoolId { get; set; }
 
         /// <summary>
-        /// Gets or sets the renderingJobId field
-        /// </summary>
-        [JsonProperty("renderingJobId")]
-        public string RenderingJobId { get; set; }
-
-        /// <summary>
         /// Gets or sets the turnPoolId field
         /// </summary>
         [JsonProperty("turnPoolId")]

@@ -36,7 +36,6 @@ namespace Cloud3DSTKDeployment.Tests.Functional
             // Create a fully functional json body
             var jsonBody = new CreateApiJsonBody
             {
-                RenderingJobId = "TEST_JOB",
                 TurnPoolId = "TEST_TURN",
                 RenderingPoolId = "TEST_RENDERING"
             };

@@ -86,8 +86,7 @@ namespace Cloud3DSTKDeployment.Controllers
                 // Create a json body with a specific pool and job ID. These should be unique to avoid conflict. 
                 var json = new CreateApiJsonBody
                 {
-                    RenderingPoolId = Guid.NewGuid().ToString(),
-                    RenderingJobId = Guid.NewGuid().ToString()
+                    RenderingPoolId = Guid.NewGuid().ToString()
                 };
                 
                 // Spin up a new Rendering Pool

@@ -80,41 +80,9 @@ namespace Cloud3DSTKDeployment.Services
         /// Creates a rendering server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be created</param>
+        /// <param name="turnServerIp">The IP of the desired TURN server</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<object> CreateRenderingPool(string poolId);
-
-        /// <summary>
-        /// Creates the rendering tasks for each node inside the pool
-        /// The task runs a PowerShell script to update the signaling and TURN information inside each node
-        /// </summary>
-        /// <param name="turnServerIp">The TURN server node ip</param>
-        /// <param name="jobId">The job id for the tasks</param>
-        /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<bool> AddRenderingTasksAsync(string turnServerIp, string jobId);
-
-        /// <summary>
-        /// Monitors the specified tasks for completion and returns a value indicating whether all tasks completed successfully
-        /// within the timeout period.
-        /// </summary>
-        /// <param name="jobId">The id of the job containing the tasks that should be monitored.</param>
-        /// <param name="timeout">The period of time to wait for the tasks to reach the completed state.</param>
-        /// <returns><c>true</c> if all tasks in the specified job completed with an exit code of 0 within the specified timeout period, otherwise <c>false</c>.</returns>
-        Task<bool> MonitorTasks(string jobId, TimeSpan timeout);
-
-        /// <summary>
-        /// Creates a Job that holds all tasks for that specific pool
-        /// </summary>
-        /// <param name="jobId">The id for the new job creation</param>
-        /// <param name="poolId">The pool id for this job</param>
-        /// <returns><c>true</c> if the job was completed</returns>
-        Task<string> CreateJobAsync(string jobId, string poolId);
-
-        /// <summary>
-        /// Delete a specific job
-        /// </summary>
-        /// <param name="jobId">The job id to be deleted</param>
-        /// <returns>Return a task that can be awaited</returns>
-        Task DeleteJobAsync(string jobId);
+        Task<object> CreateRenderingPool(string poolId, string turnServerIp);
 
         /// <summary>
         /// Delete a specific pool

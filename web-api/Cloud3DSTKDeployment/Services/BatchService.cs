@@ -124,9 +124,15 @@ namespace Cloud3DSTKDeployment.Services
         public int GetMaxRenderingSlotsCapacity()
         {
             var allPools = this.GetPoolsInBatch();
-            var totalRenderingPools = allPools.Where(i => i.VirtualMachineConfiguration.ImageReference.Offer.Equals("WindowsServer") && i.State != PoolState.Deleting).Count();
-            
-            return totalRenderingPools * this.dedicatedRenderingNodes * this.maxUsersPerRenderingNode;
+            var totalRenderingPools = allPools.Where(i => i.VirtualMachineConfiguration.ImageReference.Offer.Equals("WindowsServer") && i.State != PoolState.Deleting);
+            int totalRenderingNodes = 0;
+
+            foreach (var pool in totalRenderingPools)
+            {
+                totalRenderingNodes += pool.ListComputeNodes().Count();
+            }
+
+            return totalRenderingNodes * this.maxUsersPerRenderingNode;
         }
 
         /// <summary>
@@ -325,8 +331,9 @@ namespace Cloud3DSTKDeployment.Services
         /// Creates a rendering server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be created</param>
+        /// <param name="turnServerIp">The IP of the desired TURN server</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        public async Task<object> CreateRenderingPool(string poolId)
+        public async Task<object> CreateRenderingPool(string poolId, string turnServerIp)
         {
             CloudPool pool;
             try
@@ -358,6 +365,18 @@ namespace Cloud3DSTKDeployment.Services
                     };
                 }
                 
+                // Command to start the rendering service
+                var startRenderingCommand = string.Format(
+                    "cmd /c powershell -command \"start-process powershell -verb runAs -ArgumentList '-ExecutionPolicy Unrestricted -file %AZ_BATCH_APP_PACKAGE_server-deploy-script#1.0%\\server_deploy.ps1 {1} {2} {3} {4} {5} {6} {7} {0} '\"",
+                    this.serverPath,
+                    string.Format("turn:{0}:3478", turnServerIp),
+                    "username",
+                    "password",
+                    this.signalingServerUrl,
+                    this.signalingServerPort,
+                    5000,
+                    this.maxUsersPerRenderingNode);
+
                 // Create and assign the StartTask that will be executed when compute nodes join the pool.
                 // In this case, we copy the StartTask's resource files (that will be automatically downloaded
                 // to the node by the StartTask) into the shared directory that all tasks will have access to.
@@ -368,7 +387,8 @@ namespace Cloud3DSTKDeployment.Services
                         "cmd /c robocopy %AZ_BATCH_APP_PACKAGE_sample-server#1.0% {0} /E && " +
                         "cmd /c %AZ_BATCH_APP_PACKAGE_vc-redist#2015%\\vc_redist.x64.exe /install /passive /norestart && " +
                         "cmd /c %AZ_BATCH_APP_PACKAGE_NVIDIA#391.58%\\setup.exe /s && " +
-                        "cmd /c %AZ_BATCH_APP_PACKAGE_native-server-tests#1%\\NativeServerTests\\NativeServer.Tests.exe --gtest_also_run_disabled_tests --gtest_filter=\"*Driver*:*Hardware*\"",
+                        "cmd /c %AZ_BATCH_APP_PACKAGE_native-server-tests#1%\\NativeServerTests\\NativeServer.Tests.exe --gtest_also_run_disabled_tests --gtest_filter=\"*Driver*:*Hardware*\" &&" +
+                        startRenderingCommand,
                     this.serverPath),
                     UserIdentity = new UserIdentity(new AutoUserSpecification(AutoUserScope.Task, ElevationLevel.Admin)),
                     WaitForSuccess = true,
@@ -496,41 +516,6 @@ namespace Cloud3DSTKDeployment.Services
             await this.batchClient.JobOperations.TerminateJobAsync(jobId, ApiResultMessages.SuccessMessage);
 
             return allTasksSuccessful;
-        }
-
-        /// <summary>
-        /// Creates a Job that holds all tasks for that specific pool
-        /// </summary>
-        /// <param name="jobId">The id for the new job creation</param>
-        /// <param name="poolId">The pool id for this job</param>
-        /// <returns><c>true</c> if the job was completed</returns>
-        public async Task<string> CreateJobAsync(string jobId, string poolId)
-        {
-            Console.WriteLine("Creating job [{0}]...", jobId);
-
-            try
-            {
-                var job = this.batchClient.JobOperations.CreateJob();
-                job.Id = jobId;
-                job.PoolInformation = new PoolInformation { PoolId = poolId };
-
-                await job.CommitAsync();
-                return string.Empty;
-            }
-            catch (BatchException ex)
-            {
-                return ((Microsoft.Azure.Batch.Protocol.Models.BatchErrorException)ex.InnerException).Response.ReasonPhrase;
-            }
-        }
-
-        /// <summary>
-        /// Deleted a specific job
-        /// </summary>
-        /// <param name="jobId">The job id to be deleted</param>
-        /// <returns>Return a task that can be awaited</returns>
-        public async Task DeleteJobAsync(string jobId)
-        {
-            await this.batchClient.JobOperations.DeleteJobAsync(jobId);
         }
 
         /// <summary>
