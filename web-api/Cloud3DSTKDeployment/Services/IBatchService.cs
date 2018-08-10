@@ -6,6 +6,7 @@ namespace Cloud3DSTKDeployment.Services
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Cloud3DSTKDeployment.Models;
     using Microsoft.Azure.Batch;
     using Microsoft.Azure.Batch.Common;
 
@@ -30,9 +31,11 @@ namespace Cloud3DSTKDeployment.Services
         /// Method to return if the batch client is approaching rendering capacity
         /// </summary>
         /// <param name="totalClients">Total number of connected clients</param>
+        /// <param name="renderingServers">A list of rendering servers connected to the signaling server</param>
+        /// <param name="deletePoolId">The pool id to be removed, used only for downscaling</param>
         /// <returns>Returns true/false if we are approaching rendering capacity</returns>
-        bool ApproachingRenderingCapacity(int totalClients);
-
+        AutoscalingStatus GetAutoscalingStatus(int totalClients, List<ConnectedServer> renderingServers, out string deletePoolId);
+        
         /// <summary>
         /// Method to return if the orchestrator is handling auto scaling
         /// </summary>

@@ -65,6 +65,11 @@ namespace Cloud3DSTKDeployment.Services
         private BatchClient batchClient;
 
         /// <summary>
+        /// Local instance of all rendering pools
+        /// </summary>
+        private IEnumerable<CloudPool> currentRenderingPools;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="BatchService" /> class
         /// </summary>
         /// <param name="configuration">Configuration for the appsettings file</param>
@@ -124,12 +129,15 @@ namespace Cloud3DSTKDeployment.Services
         public int GetMaxRenderingSlotsCapacity()
         {
             var allPools = this.GetPoolsInBatch();
-            var totalRenderingPools = allPools.Where(i => i.VirtualMachineConfiguration.ImageReference.Offer.Equals("WindowsServer") && i.State != PoolState.Deleting);
+            this.currentRenderingPools = allPools.Where(i => i.VirtualMachineConfiguration.ImageReference.Offer.Equals("WindowsServer") && i.State != PoolState.Deleting);
             int totalRenderingNodes = 0;
 
-            foreach (var pool in totalRenderingPools)
+            foreach (var pool in this.currentRenderingPools)
             {
-                totalRenderingNodes += pool.ListComputeNodes().Count();
+                if (pool.TargetDedicatedComputeNodes.HasValue)
+                {
+                    totalRenderingNodes += pool.TargetDedicatedComputeNodes.Value;
+                }
             }
 
             return totalRenderingNodes * this.maxUsersPerRenderingNode;
@@ -147,18 +155,55 @@ namespace Cloud3DSTKDeployment.Services
         /// <summary>
         /// Method to return if the batch client is approaching rendering capacity
         /// </summary>
-        /// <param name="totalClients">The number of current clients</param>
+        /// <param name="totalClients">Total number of connected clients</param>
+        /// <param name="renderingServers">A list of rendering servers connected to the signaling server</param>
+        /// <param name="deletePoolId">The pool id to be removed, used only for downscaling</param>
         /// <returns>Returns true/false if we are approaching rendering capacity</returns>
-        public bool ApproachingRenderingCapacity(int totalClients)
+        public AutoscalingStatus GetAutoscalingStatus(int totalClients, List<ConnectedServer> renderingServers, out string deletePoolId)
         {
+            deletePoolId = string.Empty;
             if (!this.IsAutoScaling())
             {
-                return false;
+                return AutoscalingStatus.NotEnabled;
             }
 
             var currentCapacity = this.GetMaxRenderingSlotsCapacity();
+            if (currentCapacity < 1)
+            {
+                // We have no pools
+                return AutoscalingStatus.UpscaleRenderingPool;
+            }
 
-            return currentCapacity < 1 ? true : totalClients / currentCapacity * 100 > this.automaticScalingThreshold;
+            var currentSlotsUsagePercentage = totalClients / currentCapacity * 100;
+            if (currentSlotsUsagePercentage > this.automaticScalingThreshold)
+            {
+                // We are approaching capacity, we need a new pool
+                return AutoscalingStatus.UpscaleRenderingPool;
+            }
+            else 
+            {
+                foreach (var pool in this.currentRenderingPools)
+                {
+                    bool poolIsIdle = true;
+
+                    foreach (var node in pool.ListComputeNodes())
+                    {
+                        if (renderingServers.Any(s => s.Server.Ip == node.IPAddress))
+                        {
+                            poolIsIdle = false;
+                            break;
+                        }
+                    }
+
+                    if (poolIsIdle)
+                    {
+                        deletePoolId = pool.Id;
+                        return AutoscalingStatus.DownscaleRenderingPool;
+                    }
+                }
+            }
+
+            return AutoscalingStatus.OK;
         }
 
         /// <summary>
@@ -440,84 +485,7 @@ namespace Cloud3DSTKDeployment.Services
 
             return pool;
         }
-
-        /// <summary>
-        /// Creates the rendering tasks for each node inside the pool
-        /// The task runs a PowerShell script to update the signaling and TURN information inside each node
-        /// </summary>
-        /// <param name="turnServerIp">The TURN server public ip</param>
-        /// <param name="jobId">The job id for the tasks</param>
-        /// <returns>Returns a boolean if the creation was successful</returns>
-        public async Task<bool> AddRenderingTasksAsync(string turnServerIp, string jobId)
-        {
-            // Create a collection to hold the tasks that we'll be adding to the job
-            List<CloudTask> tasks = new List<CloudTask>();
-
-            var taskId = Guid.NewGuid().ToString();
-            var startRenderingCommand = string.Format(
-                    "cmd /c powershell -command \"start-process powershell -verb runAs -ArgumentList '-ExecutionPolicy Unrestricted -file %AZ_BATCH_APP_PACKAGE_server-deploy-script#1.0%\\server_deploy.ps1 {1} {2} {3} {4} {5} {6} {7} {0} '\"",
-                    this.serverPath,
-                    string.Format("turn:{0}:3478", turnServerIp),
-                    "username",
-                    "password",
-                    this.signalingServerUrl,
-                    this.signalingServerPort,
-                    5000,
-                    this.maxUsersPerRenderingNode);
-
-            CloudTask task = new CloudTask(taskId, startRenderingCommand)
-            {
-                UserIdentity = new UserIdentity(new AutoUserSpecification(AutoUserScope.Task, ElevationLevel.Admin))
-            };
-            tasks.Add(task);
-
-            Console.WriteLine("Adding {0} tasks to job [{1}]...", tasks.Count, jobId);
-
-            // Add the tasks as a collection opposed to a separate AddTask call for each. Bulk task submission
-            // helps to ensure efficient underlying API calls to the Batch service.
-            await this.batchClient.JobOperations.AddTaskAsync(jobId, tasks);
-
-            return true;
-        }
-
-        /// <summary>
-        /// Monitors the specified tasks for completion and returns a value indicating whether all tasks completed successfully
-        /// within the timeout period.
-        /// </summary>
-        /// <param name="jobId">The id of the job containing the tasks that should be monitored.</param>
-        /// <param name="timeout">The period of time to wait for the tasks to reach the completed state.</param>
-        /// <returns><c>true</c> if all tasks in the specified job completed with an exit code of 0 within the specified timeout period, otherwise <c>false</c>.</returns>
-        public async Task<bool> MonitorTasks(string jobId, TimeSpan timeout)
-        {
-            bool allTasksSuccessful = true;
-
-            // Obtain the collection of tasks currently managed by the job. Note that we use a detail level to
-            // specify that only the "id" property of each task should be populated. Using a detail level for
-            // all list operations helps to lower response time from the Batch service.
-            ODATADetailLevel detail = new ODATADetailLevel(selectClause: "id");
-            List<CloudTask> tasks = await this.batchClient.JobOperations.ListTasks(jobId, detail).ToListAsync();
-
-            Console.WriteLine("Awaiting task completion, timeout in {0}...", timeout.ToString());
-            
-            // We use a TaskStateMonitor to monitor the state of our tasks. In this case, we will wait for all tasks to
-            // reach the Completed state.
-            TaskStateMonitor taskStateMonitor = this.batchClient.Utilities.CreateTaskStateMonitor();
-            try
-            {
-                await taskStateMonitor.WhenAll(tasks, TaskState.Completed, timeout);
-            }
-            catch (TimeoutException)
-            {
-                await this.batchClient.JobOperations.TerminateJobAsync(jobId, ApiResultMessages.FailureMessage);
-                Console.WriteLine(ApiResultMessages.FailureMessage);
-                return false;
-            }
-
-            await this.batchClient.JobOperations.TerminateJobAsync(jobId, ApiResultMessages.SuccessMessage);
-
-            return allTasksSuccessful;
-        }
-
+        
         /// <summary>
         /// Delete a specific pool
         /// </summary>
