@@ -12,18 +12,15 @@ namespace Cloud3DSTKDeployment.Models
     [Serializable]
     public class ConnectedServer
     {
-        [JsonProperty("id")]
-        public Server Server { get; set; }
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Server" /> class
-    /// </summary>
-    [Serializable]
-    public class Server
-    {
+        /// <summary>
+        /// Gets or sets the number of slots on the server
+        /// </summary>
         [JsonProperty("slots")]
         public int Slots { get; set; }
+
+        /// <summary>
+        /// Gets or sets the server IP address
+        /// </summary>
         [JsonProperty("ip")]
         public string Ip { get; set; }
     }

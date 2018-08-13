@@ -68,7 +68,16 @@ namespace Cloud3DSTKDeployment.Controllers
 
             var totalClients = jsonBody["totalSessions"]?.ToObject<int>();
             var totalSlots = jsonBody["totalSlots"]?.ToObject<int>();
-            var serversList = jsonBody["servers"]?.ToObject<List<ConnectedServer>>();
+            var serversList = jsonBody["servers"]?.ToObject<JObject>();
+            var connectedServers = new List<ConnectedServer>();
+
+            if (serversList.HasValues)
+            {
+                foreach (var server in serversList)
+                {
+                    connectedServers.Add(server.Value.ToObject<ConnectedServer>());
+                }
+            }
 
             if (!totalClients.HasValue || !totalSlots.HasValue)
             {
@@ -76,7 +85,7 @@ namespace Cloud3DSTKDeployment.Controllers
             }
 
             var deletePoolId = string.Empty;
-            switch (this.batchService.GetAutoscalingStatus(totalClients.Value, serversList, out deletePoolId))
+            switch (this.batchService.GetAutoscalingStatus(totalClients.Value, connectedServers, out deletePoolId))
             {
                 case AutoscalingStatus.NotEnabled:
                     {
@@ -85,8 +94,11 @@ namespace Cloud3DSTKDeployment.Controllers
 
                 case AutoscalingStatus.UpscaleRenderingPool:
                     {
-                        // We are approaching capacity, stop the downscale timer
-                        this.downscaleTimer.Stop();
+                        if (this.downscaleTimer != null && this.downscaleTimer.Enabled)
+                        {
+                            // We are approaching capacity, stop any down scale timer
+                            this.downscaleTimer.Stop();
+                        }
 
                         var controller = new Cloud3DSTKController
                         {
@@ -111,12 +123,23 @@ namespace Cloud3DSTKDeployment.Controllers
 
                 case AutoscalingStatus.DownscaleRenderingPool:
                     {
-                        if (!this.downscaleTimer.Enabled)
+                        if (this.downscaleTimer != null && !this.downscaleTimer.Enabled)
                         {
-                            this.downscaleTimer.Elapsed += (sender, e) => this.DownscaleElapsedMethod(sender, e, totalClients.Value, serversList);
+                            this.downscaleTimer.Elapsed += (sender, e) => this.DownscaleElapsedMethod(sender, e, totalClients.Value, connectedServers);
 
                             // Wait until the downscale threshold timout is met and delete the pool
                             this.downscaleTimer.Start();
+                        }
+
+                        break;
+                    }
+
+                case AutoscalingStatus.OK:
+                    {
+                        if (this.downscaleTimer != null && this.downscaleTimer.Enabled)
+                        {
+                            // We are in normal parameters, stop any down scale timer
+                            this.downscaleTimer.Stop();
                         }
 
                         break;

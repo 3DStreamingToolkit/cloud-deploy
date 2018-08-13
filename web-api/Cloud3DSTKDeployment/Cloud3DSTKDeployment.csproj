@@ -152,9 +152,7 @@
     <Compile Include="Models\CapacityStatus.cs" />
     <Compile Include="Models\CreateApiJsonBody.cs" />
     <Compile Include="Models\DeletePoolApiJsonBody.cs" />
-    <Compile Include="Models\OrchestratorPost.cs">
-      <ExcludeFromStyleCop>True</ExcludeFromStyleCop>
-    </Compile>
+    <Compile Include="Models\OrchestratorPost.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\BatchService.cs" />
     <Compile Include="Services\IBatchService.cs" />

@@ -42,7 +42,17 @@ namespace Cloud3DSTKDeployment.Services
         /// <summary>
         /// The threshold for automatic creation of new rendering pools
         /// </summary>
-        private int automaticScalingThreshold = 0;
+        private int automaticScalingUpThreshold = 0;
+
+        /// <summary>
+        /// The threshold for automatic scaling down of rendering pools
+        /// </summary>
+        private int automaticScalingDownThreshold = 0;
+
+        /// <summary>
+        /// The minimum number of rendering pools to keep alive
+        /// </summary>
+        private int minimumRenderingPools = int.MaxValue;
 
         /// <summary>
         /// The vnet for all batch pools
@@ -84,7 +94,10 @@ namespace Cloud3DSTKDeployment.Services
             int.TryParse(Configuration["DedicatedTurnNodes"], out this.dedicatedTurnNodes);
             int.TryParse(Configuration["DedicatedRenderingNodes"], out this.dedicatedRenderingNodes);
             int.TryParse(Configuration["MaxUsersPerRenderingNode"], out this.maxUsersPerRenderingNode);
-            int.TryParse(Configuration["AutomaticScalingThreshold"], out this.automaticScalingThreshold);
+            int.TryParse(Configuration["AutomaticScalingUpThreshold"], out this.automaticScalingUpThreshold);
+            int.TryParse(Configuration["AutomaticScalingDownThreshold"], out this.automaticScalingDownThreshold);
+            int.TryParse(Configuration["MinimumRenderingPools"], out this.minimumRenderingPools);
+            int.TryParse(Configuration["SignalingServerPort"], out this.signalingServerPort);
             int.TryParse(Configuration["SignalingServerPort"], out this.signalingServerPort);
 
             this.signalingServerUrl = Configuration["SignalingServerUrl"];
@@ -129,27 +142,27 @@ namespace Cloud3DSTKDeployment.Services
         public int GetMaxRenderingSlotsCapacity()
         {
             var allPools = this.GetPoolsInBatch();
-            this.currentRenderingPools = allPools.Where(i => i.VirtualMachineConfiguration.ImageReference.Offer.Equals("WindowsServer") && i.State != PoolState.Deleting);
+            this.currentRenderingPools = allPools.Where(i => i.VirtualMachineConfiguration.ImageReference.Offer.Equals("WindowsServer") &&
+                                                    i.State != PoolState.Deleting &&
+                                                    i.TargetDedicatedComputeNodes.HasValue &&
+                                                    i.TargetDedicatedComputeNodes.Value > 0);
             int totalRenderingNodes = 0;
 
             foreach (var pool in this.currentRenderingPools)
             {
-                if (pool.TargetDedicatedComputeNodes.HasValue)
-                {
-                    totalRenderingNodes += pool.TargetDedicatedComputeNodes.Value;
-                }
+                totalRenderingNodes += pool.TargetDedicatedComputeNodes.Value;
             }
 
             return totalRenderingNodes * this.maxUsersPerRenderingNode;
         }
 
         /// <summary>
-        /// Method to return if auto scaling is enabled
+        /// Method to return if auto scaling up or down is enabled
         /// </summary>
         /// <returns>Returns if auto scale is enabled</returns>
         public bool IsAutoScaling()
         {
-            return this.automaticScalingThreshold > 0;
+            return this.automaticScalingUpThreshold > 0 || this.automaticScalingDownThreshold > 0;
         }
 
         /// <summary>
@@ -174,31 +187,37 @@ namespace Cloud3DSTKDeployment.Services
                 return AutoscalingStatus.UpscaleRenderingPool;
             }
 
-            var currentSlotsUsagePercentage = totalClients / currentCapacity * 100;
-            if (currentSlotsUsagePercentage > this.automaticScalingThreshold)
+            var currentSlotsUsagePercentage = (float)totalClients / currentCapacity * 100;
+            if (currentSlotsUsagePercentage > this.automaticScalingUpThreshold)
             {
                 // We are approaching capacity, we need a new pool
                 return AutoscalingStatus.UpscaleRenderingPool;
             }
-            else 
+            else if (currentSlotsUsagePercentage < this.automaticScalingDownThreshold)
             {
-                foreach (var pool in this.currentRenderingPools)
+                // Down scaling only looks at stable pools that have idle compute nodes
+                var idleRenderingPools = this.currentRenderingPools.Where(i => i.AllocationState == AllocationState.Steady && i.ListComputeNodes().All(c => c.State == ComputeNodeState.Idle));
+                if (idleRenderingPools.Count() > this.minimumRenderingPools)
                 {
-                    bool poolIsIdle = true;
-
-                    foreach (var node in pool.ListComputeNodes())
+                    // Check if any of the nodes are connected to the signaling server
+                    foreach (var pool in this.currentRenderingPools)
                     {
-                        if (renderingServers.Any(s => s.Server.Ip == node.IPAddress))
+                        bool poolIsIdle = true;
+
+                        foreach (var node in pool.ListComputeNodes())
                         {
-                            poolIsIdle = false;
-                            break;
+                            if (renderingServers.Any(s => s.Ip == node.GetRemoteLoginSettings().IPAddress))
+                            {
+                                poolIsIdle = false;
+                                break;
+                            }
                         }
-                    }
 
-                    if (poolIsIdle)
-                    {
-                        deletePoolId = pool.Id;
-                        return AutoscalingStatus.DownscaleRenderingPool;
+                        if (poolIsIdle)
+                        {
+                            deletePoolId = pool.Id;
+                            return AutoscalingStatus.DownscaleRenderingPool;
+                        }
                     }
                 }
             }
