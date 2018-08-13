@@ -71,7 +71,7 @@ namespace Cloud3DSTKDeployment.Controllers
             var serversList = jsonBody["servers"]?.ToObject<JObject>();
             var connectedServers = new List<ConnectedServer>();
 
-            if (serversList.HasValues)
+            if (serversList != null && serversList.HasValues)
             {
                 foreach (var server in serversList)
                 {
