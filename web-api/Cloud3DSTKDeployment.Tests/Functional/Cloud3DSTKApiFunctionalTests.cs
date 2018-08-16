@@ -7,6 +7,7 @@ namespace Cloud3DSTKDeployment.Tests.Functional
     using System.Net.Http;
     using System.Threading.Tasks;
     using Cloud3DSTKDeployment.Helpers;
+    using Cloud3DSTKDeployment.Models;
     using Cloud3DSTKDeployment.Services;
     using Cloud3DSTKDeployment.Tests.Helpers;
     using Cloud3DSTKDeployment.Tests.Models;
@@ -28,20 +29,15 @@ namespace Cloud3DSTKDeployment.Tests.Functional
         public async Task FunctionalEndToEndCreateTest()
         {
             var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
-            var controller = ControllerExtensions.NewController();
+            Assert.IsTrue(string.IsNullOrWhiteSpace(batchService.HasValidConfiguration()));
+            
+            var controller = ControllerExtensions.NewCloudController();
 
             // Create a fully functional json body
             var jsonBody = new CreateApiJsonBody
             {
-                SignalingServer = "SIGNALING_SERVER_URI",
-                SignalingServerPort = 80,
-                Vnet = "/subscriptions/{subscription}/resourceGroups/{group}/providers/{provider}/virtualNetworks/{network}/subnets/{subnet}",
-                DedicatedRenderingNodes = 1,
-                DedicatedTurnNodes = 1,
-                MaxUsersPerRenderingNode = 3,
-                RenderingJobId = "JOB_ID",
-                TurnPoolId = "TURN_POOL_ID",
-                RenderingPoolId = "RENDERING_POOL_ID"
+                TurnPoolId = "TEST_TURN",
+                RenderingPoolId = "TEST_RENDERING"
             };
 
             var result = await controller.Post((JObject)JToken.FromObject(jsonBody));
@@ -62,12 +58,12 @@ namespace Cloud3DSTKDeployment.Tests.Functional
         public async Task FunctionalDeletePoolIdTest()
         {
             var batchService = new BatchService(ConfigurationHelper.GetConfiguration());
-            var controller = ControllerExtensions.NewController();
+            var controller = ControllerExtensions.NewCloudController();
 
             // Create a json body with a specific pool id
             var jsonBody = new DeletePoolApiJsonBody
             {
-                PoolId = "RenderingPool"
+                PoolId = "TEST_RENDERING"
             };
 
             var result = await controller.DeletePool((JObject)JToken.FromObject(jsonBody));

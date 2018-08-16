@@ -6,6 +6,7 @@ namespace Cloud3DSTKDeployment.Services
     using System;
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Cloud3DSTKDeployment.Models;
     using Microsoft.Azure.Batch;
     using Microsoft.Azure.Batch.Common;
 
@@ -19,15 +20,40 @@ namespace Cloud3DSTKDeployment.Services
         /// </summary>
         /// <returns>Returns a list of pools</returns>
         IList<CloudPool> GetPoolsInBatch();
+        
+        /// <summary>
+        /// Method to return maximum capacity of rendering slots, including pending pools
+        /// </summary>
+        /// <returns>Returns the max rendering slots capacity</returns>
+        int GetMaxRenderingSlotsCapacity();
+
+        /// <summary>
+        /// Method to return if the batch client is approaching rendering capacity
+        /// </summary>
+        /// <param name="totalClients">Total number of connected clients</param>
+        /// <param name="renderingServers">A list of rendering servers connected to the signaling server</param>
+        /// <param name="deletePoolId">The pool id to be removed, used only for downscaling</param>
+        /// <returns>Returns true/false if we are approaching rendering capacity</returns>
+        AutoscalingStatus GetAutoscalingStatus(int totalClients, List<ConnectedServer> renderingServers, out string deletePoolId);
+        
+        /// <summary>
+        /// Method to return if the orchestrator is handling auto scaling
+        /// </summary>
+        /// <returns>Returns if the orchestrator is handling auto scaling</returns>
+        bool IsAutoScaling();
+
+        /// <summary>
+        /// Method to return if the api has a valid configuration
+        /// </summary>
+        /// <returns>Returns an empty string for a valid configuration or an error message if not</returns>
+        string HasValidConfiguration();
 
         /// <summary>
         /// Creates a TURN server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be created</param>
-        /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
-        /// <param name="vnet">The vnet for each node</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<object> CreateTurnPool(string poolId, int dedicatedNodes, string vnet);
+        Task<object> CreateTurnPool(string poolId);
 
         /// <summary>
         /// Method to wait until pool creation is complete
@@ -57,46 +83,9 @@ namespace Cloud3DSTKDeployment.Services
         /// Creates a rendering server pool
         /// </summary>
         /// <param name="poolId">The pool ID to be created</param>
-        /// <param name="dedicatedNodes">The number of dedicated nodes inside the pool</param>
-        /// <param name="vnet">The vnet for each node</param>
+        /// <param name="turnServerIp">The IP of the desired TURN server</param>
         /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<object> CreateRenderingPool(string poolId, int dedicatedNodes, string vnet);
-
-        /// <summary>
-        /// Creates the rendering tasks for each node inside the pool
-        /// The task runs a PowerShell script to update the signaling and TURN information inside each node
-        /// </summary>
-        /// <param name="turnServerIp">The TURN server node ip</param>
-        /// <param name="jobId">The job id for the tasks</param>
-        /// <param name="signalingServerURL">The URI for the signaling server</param>
-        /// <param name="signalingServerPort">The port for the signaling server</param>
-        /// <param name="serverCapacity">The max number of concurrent users per rendering node</param>
-        /// <returns>Returns a boolean if the creation was successful</returns>
-        Task<bool> AddRenderingTasksAsync(string turnServerIp, string jobId, string signalingServerURL, int signalingServerPort, int serverCapacity);
-
-        /// <summary>
-        /// Monitors the specified tasks for completion and returns a value indicating whether all tasks completed successfully
-        /// within the timeout period.
-        /// </summary>
-        /// <param name="jobId">The id of the job containing the tasks that should be monitored.</param>
-        /// <param name="timeout">The period of time to wait for the tasks to reach the completed state.</param>
-        /// <returns><c>true</c> if all tasks in the specified job completed with an exit code of 0 within the specified timeout period, otherwise <c>false</c>.</returns>
-        Task<bool> MonitorTasks(string jobId, TimeSpan timeout);
-
-        /// <summary>
-        /// Creates a Job that holds all tasks for that specific pool
-        /// </summary>
-        /// <param name="jobId">The id for the new job creation</param>
-        /// <param name="poolId">The pool id for this job</param>
-        /// <returns><c>true</c> if the job was completed</returns>
-        Task<string> CreateJobAsync(string jobId, string poolId);
-
-        /// <summary>
-        /// Delete a specific job
-        /// </summary>
-        /// <param name="jobId">The job id to be deleted</param>
-        /// <returns>Return a task that can be awaited</returns>
-        Task DeleteJobAsync(string jobId);
+        Task<object> CreateRenderingPool(string poolId, string turnServerIp);
 
         /// <summary>
         /// Delete a specific pool

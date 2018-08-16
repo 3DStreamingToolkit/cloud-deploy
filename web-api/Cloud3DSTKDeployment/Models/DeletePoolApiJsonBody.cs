@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Cloud3DSTKDeployment.Tests.Models
+namespace Cloud3DSTKDeployment.Models
 {
     using System;
     using Newtonsoft.Json;
